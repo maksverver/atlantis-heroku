@@ -1,0 +1,11 @@
+HTML:
+
+  - option to show field coordinates
+
+   - dim unselectable fields (e.g. when segment has already been moved from)
+   - clearer turn highlighting
+   ^ for these, just highlight all possible fields?
+
+
+ 
+  - Maybe later: textures for the colorblind?

@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+<title>Atlantis</title>
+<style type="text/css">
+
+/* TODO: move this to a separate file! */
+
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+canvas#Board {
+    border: 1px solid blue;
+    background: #80a0ff;
+    margin: 4pk;
+}
+
+#LeftColumn {
+    position: absolute;
+    overflow: auto;
+}
+
+#RightColumn {
+    position: absolute;
+    overflow: auto;
+}
+
+button.Icon {
+    margin:     4px;
+    width:      64px;
+    height:     64px;
+    display:    inline-block;
+    cursor:     pointer;
+    border:     0;
+}
+
+#MoveButton0               { background: url("icons/reset1.png"); background-size: 100%; }
+#MoveButton0:hover         { background: url("icons/reset2.png"); background-size: 100%; }
+#MoveButton0:disabled      { background: url("icons/reset0.png"); background-size: 100%; }
+
+#MoveButton1               { background: url("icons/move1.png"); background-size: 100%; }
+#MoveButton1:hover         { background: url("icons/move2.png"); background-size: 100%; }
+#MoveButton1:disabled      { background: url("icons/move0.png"); background-size: 100%; }
+
+#MoveButton2               { background: url("icons/explode1.png"); background-size: 100%; }
+#MoveButton2:hover         { background: url("icons/explode2.png"); background-size: 100%; }
+#MoveButton2:disabled      { background: url("icons/explode0.png"); background-size: 100%; }
+
+#MoveButton3               { background: url("icons/grow1.png"); background-size: 100%; }
+#MoveButton3:hover         { background: url("icons/grow2.png"); background-size: 100%; }
+#MoveButton3:disabled      { background: url("icons/grow0.png"); background-size: 100%; }
+
+#MoveButton4               { background: url("icons/commit1.png"); background-size: 100%; }
+#MoveButton4:hover         { background: url("icons/commit2.png"); background-size: 100%; }
+#MoveButton4:disabled      { background: url("icons/commit0.png"); background-size: 100%; }
+</style>
+</head>
+<body onload="resize();initialize()" onresize="resize()">
+
+<div id="LeftColumn">
+  <div id="Buttons">
+    <button class="Icon" id="MoveButton0" title="Reset"   onclick="onMoveButton(0)">
+    <button class="Icon" id="MoveButton1" title="Move"    onclick="onMoveButton(1)">
+    <button class="Icon" id="MoveButton2" title="Explode" onclick="onMoveButton(2)">
+    <button class="Icon" id="MoveButton3" title="Grow"    onclick="onMoveButton(3)">
+    <button class="Icon" id="MoveButton4" title="Commit"  onclick="onMoveButton(4)">
+  </div>
+  <div id="BoardContainer"></div>
+</div>
+<!--<div id="RightColumn">
+</div>-->
+<script type="text/javascript" src="atlantis.js"></script>
+<script type="text/javascript">
+function resize() {
+    var h = innerHeight
+    var w = innerWidth
+    var l = document.getElementById("LeftColumn")
+    //var r = document.getElementById("RightColumn")
+    //l.style.width  = parseInt(0.7*w) + 'px'
+    l.style.width  = w + 'px'
+    l.style.height = h + 'px'
+    //r.style.width  = parseInt(0.3*w) + 'px'
+    //r.style.height = h + 'px'
+    //r.style.left   = l.style.width
+}
+</script>
+</body>
+</html>
