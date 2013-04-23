@@ -1,5 +1,7 @@
 A transcript format for the Atlantis board game.
 
+FIXME: make samples valid JSON (e.g. use double instead of single quotes)
+
 Design goals
 ------------
 
@@ -161,15 +163,18 @@ Game state will be encoded in JSON format.  The top-level format contains
 up to six keys:
 
 {
-    "format":    "Atlantis transcript"
-    "version":   "1.0"
-    "segments":  <<SEGMENTS>>
-    "players":   <<PLAYERS>>
-    "turns":     <<TURNS>>
+    "format":    "Atlantis transcript",
+    "version":   "1.0",
+    "segments":  <<SEGMENTS>>,
+    "players":   <<PLAYERS>>,
+    "events":    <<EVENTS>>,
+    "user":      "username",
+    "begin":     "date+time"
+    "end":       "date+time"
 }
 
-If the state describes a starting board only, the "turns" and "players" keys
-may be omitted.
+If the state describes a starting board only, the keys after "segments" may
+be omitted.
 
 <<SEGMENTS>>
 
@@ -223,7 +228,7 @@ all players, since a single field can only contain stones from a single player.
 If fields are specified as seven 
 
 
-<<TURNS>>
+<<EVENTS>>
 
 The moves performed so far are described by a list of turns.  Each turn is a
 list of moves.  Each move is a list with two strings: the coordinates of the
@@ -231,143 +236,22 @@ source and destination fields.
 
 Example:
 
-    "turns": [
-        [ ['a1','b2'],['b2','c3'],['c2','c4'] ],    /* player 1 */
-        [ ],                                        /* player 2 */
-        /* etc */
+    "events": [
+        { "user": "username",
+          "time": "date+time",
+          "type": "chat",
+          "message":"foobar"
+        },
+        { "user": "username",
+          "time": "date+time",
+          "type": "turn"
+          "moves": [['a1','b2'],['b2','c3'],['c2','c4']]
+        },
     ]
 
 Note that the list of moves for a player may be empty.  The effects of the
 explosion and growth phase are not described explicitly, as they follow
-implicitly follow from the state of the game after performing all moves in a
-turn.  The list of moves may be empty if a player cannot or does not want to
-perform any moves, but it must be present.  That means that in a game with
-P players, the i-th turn contains the moves executed by player i mod P.
-
-
-#########################################
-
-  OLD DATA FORMAT DESCRIPTION FOLLOWS
-
-#########################################
-
-
-The file format is text-based (when transferred in binary UTF-8 encoding should
-be used). Whitespace (including spaces and newline characters) after tokens is
-permitted and ignored by the parser. It is not required, but encouraged to
-improve legibility.
-
-String literals are enclosed by parentheses and may not themselves contain
-embedded parentheses. If necessary, parentheses in strings should be converted
-to square brackets by the processor. There currently is no escape mechanism.
-String literals are the only tokens which may include whitespace characters.
-
-
-Version
-=======
-A transcript file always starts with the text "atlantis-transcript 1.0" that
-identifies the file format and specification version used (currently 1.0).
-
-Board
-=====
-Next comes a description of the initial board configuration, indicated by the
-'board' keyword, followed by a list of segments, optionally followed by a list
-of dead fields.
-
-Each segment is described by a standard segment identifier (e.g. 'B2') or a
-sequence of single fields enclosed in square brackets (e.g. '[a1 a2 b2]'). The
-segment identifier is just an abbreviation; there is no semantic difference
-between B2 and [a1a2b1b2b3c2c3], nor is ordering of fields in a segment
-significant. Each field may only be declared as part of one segment, and only
-once per segment.
-
-Since every field is part of a segment, the list of segments suffices to
-describe all fields that exist in the game.
-
-If the initial board contains dead fields, a dash character follows the segment
-list, and then a sequence of dead fields. Each dead field must exist and may
-only be declared once. Again, the order in which dead fields are specified does
-not matter.
-
-Example:
-
-    board B1 E3 D5
-    A board with three segments.
-
-    board [a1a2 b1b2b3 c2c3] D5 E3 - e6 d6
-    The same board, but with two craters on the second segment.
-
-Players
-=======
-For each player, there is a player description starting with a 'player' token,
-followed by the initial placement of stones, the color of his stones, and his
-name.
-
-The placement is a sequence of segments and/or fields. Each field may be
-suffixed with a semicolon and a positive integer indicating the height of the
-pile of stones on that field; the default is 1.
-
-The stone color is specified as a string, which must be one of the SVG colors
-names; see http://www.w3.org/TR/SVG/types.html#ColorKeywords.
-
-The player's name is a string, and may include an e-mail address if it is known.
-
-Stones can be placed only on existing fields that do not yet contain any stones.
-Therefore, each field can only be used once in the placements of all players.
-
-Example:
-    player B2 d2:2 e3 (Joe <joe@example.com>) (red)
-
-    Declares a player named Joe, playing with red stones, with one placed on
-    each of the seven fields of segment B2, two on the field d2, and one on the
-    field e3.
-
- + growing points?
-
-Rounds
-======
-
-In every round (except possibly the last) each player performs exactly one turn.
-Each turn consists of a sequence of moves (the order of which is significant).
-
-Each round is prefixed by the round number (starting from 1) followed by a
-period token. Each turn is suffixed with a period token as well. At the end of
-each turn, before the period, a string can be inserted, which serves as a
-comment for this turn.
-
-Each move is described by two fields seperated by a dash token. Each move must
-be valid according to the game rules. If a player decides not to perform any
-move in a turn, this is represented by a 'pass' token.
-
-Example:
-    1. c2-c3. pass. d5-d4 d6-d7.
-    2. c3-a1.
-
-In this example, the first player first makes one move, the second player
-passes, and the third player makes two moves in his first turn. In the second
-round, the first player again makes one move. The second player is next to move.
-
-
-Complete syntax and grammar
----------------------------
-
-Complex tokens as regular expressions:
-
-SEGMENT         : [A-Z]+[0-9]+
-FIELD           : [a-z]+[0-9]+
-STRING          : "[^"\]*((\\|\")[^"\]*)*"
-
-Complete grammar in BNF + simple tokens + regular expressions:
-
-Start           : Header Board Player* Round*
-Header          : "atlantis-transcript 1.0"
-Board           : "board" Segment+ Craters?
-Segment         : SEGMENT | '[' FIELD+ ']
-Craters         : '-' FIELD+
-Player          : "player" Placement+ STRING STRING
-Placement       : SEGMENT | FIELD (':' INT)?
-Round           : INT '.' (Turn '.')+
-Turn            : (PASS | Move+) STRING?
-Move            : FIELD '-' FIELD
-
-EOF
+implicitly from the state of the game after performing all moves in a turn.
+The list of moves may be empty if a player cannot or does not want to perform
+any moves, but it must be present.  That means that in a game with P players,
+the i-th turn contains the moves executed by player i mod P.
