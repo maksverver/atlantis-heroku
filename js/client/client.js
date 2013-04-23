@@ -229,7 +229,7 @@ function redraw()
 function updateMoveButtons()
 {
     document.getElementById('MoveButton' + 0).disabled = !selection
-    for (var i = 1; i < 5; ++i)
+    for (var i = 1; i < 4; ++i)
     {
         document.getElementById('MoveButton' + i).disabled
             = !selection || selection.getPhase() != i
@@ -238,6 +238,9 @@ function updateMoveButtons()
 
 function onMoveButton(i)
 {
+    // If no MoveSelection is active, these buttons should be disabled!
+    if (!selection) return
+
     if (i == 0)
     {
         // Reset game state and move selection:
@@ -245,16 +248,16 @@ function onMoveButton(i)
         selection = MoveSelection()
     }
     else
-    if (i == 4)
-    {
-        server.emit('turn', selection.getMoves())
-        selection = null
-    }
-    else
+    if (i == selection.getPhase())
     {
         selection.nextPhase()
     }
     moveSelectionChanged()
+    if (selection.getPhase() == 4)
+    {
+        server.emit('turn', selection.getMoves())
+        selection = null
+    }
 }
 
 function resize() {
@@ -316,6 +319,7 @@ function initialize()
     })
     server.on('turn', function(moves) {
         gamestate.addTurn(moves)
+        gamestate.reset()  // necessary since growth == commit
         selection = MoveSelection()
         updateMoveButtons()
         redraw()

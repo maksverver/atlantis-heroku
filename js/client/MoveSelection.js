@@ -120,7 +120,7 @@ function MoveSelection(state)
                 if (explosions.length == 0)
                 {
                     growing = gamestate.findGrowing(player)
-                    phase = (growing.length > 0) ? 3 : 4
+                    phase = 3
                     subphase = 0
                 }
                 break
