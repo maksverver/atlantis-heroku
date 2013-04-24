@@ -49,6 +49,32 @@ function makeFieldPath(cx, cy)
     board_canvas_context.closePath()
 }
 
+function drawFieldHighlight(id, fillStyle, context, radius)
+{
+    if (!radius) radius = -2/3
+    context.save()
+    context.globalAlpha = 0.5
+    context.fillStyle = fillStyle
+    var coords = parseCoords(id)
+    var cx = coords.getCX()
+    var cy = coords.getCY()
+    context.beginPath()
+    context.arc(cx, cy, Math.abs(radius), 0, Math.PI*2, true)
+    if (radius < 0)
+    {
+        var x1 = cx + 1, y1 = cy
+        context.moveTo(x1, y1)
+        for (var dir = 0; dir < 6; ++dir)
+        {
+            var x2 = cx + Math.cos((dir + 1)*Math.PI/3)
+            var y2 = cy + Math.sin((dir + 1)*Math.PI/3)
+            context.lineTo(x2, y2)
+        }
+    }
+    context.fill()
+    context.restore()
+}
+
 function redraw()
 {
     var canvas  = board_canvas
@@ -78,6 +104,23 @@ function redraw()
         {
             context.strokeStyle = '#c0c080'
             context.stroke()
+        }
+        if (selection)
+        {
+            if (!selection.getSelectedField())
+            {
+                if (selection.isSourceField(id))
+                {
+                    drawFieldHighlight(id, '#ffe000', context)
+                }
+            }
+            else
+            {
+                if (selection.isDestinationField(id))
+                {
+                    drawFieldHighlight(id, '#ffe000', context, 0.5)
+                }
+            }
         }
     }
 
@@ -180,27 +223,10 @@ function redraw()
 
     case 3:  // Render growing fields
         var growing = selection.getGrowing()
-        context.save()
-        context.globalAlpha = 0.5
-        context.fillStyle = 'green'
         for (var i in growing)
         {
-            var coords = parseCoords(growing[i])
-            var cx = coords.getCX()
-            var cy = coords.getCY()
-            context.beginPath()
-            context.arc(cx, cy, 2/3, 0, Math.PI*2, true)
-            var x1 = cx + 1, y1 = cy
-            context.moveTo(x1, y1)
-            for (var dir = 0; dir < 6; ++dir)
-            {
-                var x2 = cx + Math.cos((dir + 1)*Math.PI/3)
-                var y2 = cy + Math.sin((dir + 1)*Math.PI/3)
-                context.lineTo(x2, y2)
-            }
-            context.fill()
+            drawFieldHighlight(growing[i], 'green', context)
         }
-        context.restore()
         break
     }
 

@@ -12,6 +12,9 @@ function MoveSelection(state)
     var explosions = null
     var growing    = null
 
+    var possibleMoves = {}
+    var segmentsUsed  = {}
+
     var obj = {
 
         objectify: function() {
@@ -27,9 +30,17 @@ function MoveSelection(state)
         getSelectedField:   function() { return selected },
         getPhase:           function() { return phase },
 
+        isSourceField: function(src) {
+            return possibleMoves[src] && !segmentsUsed[gamestate.getField(src).getSegment()]
+        },
+
+        isDestinationField: function(dst) {
+            return selected && possibleMoves[selected][dst]
+        },
+
         onMouseDown: function(id)
         {
-            if (phase > 1) return false
+            if (phase != 1) return false
 
             if (id == null)
             {
@@ -40,48 +51,42 @@ function MoveSelection(state)
                 }
                 return false
             }
-
-            // Pre-calculate fields/segments involved in moves
-            var movedToField  = { }, movedFromField = { }, movedFromSegment = { }
-            for (var i in moves)
+            if (selected == null)
             {
-                movedFromField[moves[i][0]] = true
-                movedToField[moves[i][1]] = true
-                movedFromSegment[gamestate.getField(moves[i][0]).getSegment()] = true
-            }
-
-            if (selected == null && movedFromField[id])
-            {
-                // Cancel previous move:
                 for (var i in moves)
                 {
                     if (moves[i][0] == id)
                     {
+                        delete segmentsUsed[gamestate.getField(id).getSegment()]
                         moves.splice(i, 1)
                         break
                     }
                 }
-                selected = id
-                return true
-            }
-            if (selected != null)
-            {
-                if (selected != id && gamestate.isValidMove(selected, id))
+                if (this.isSourceField(id))
                 {
-                    moves.push([selected,id])
+                    selected = id
+                    return true
                 }
+            }
+            else
+            if (selected == id)
+            {
                 selected = null
                 return true
             }
             else
             {
-                var field = gamestate.getField(id)
-                if ( field.isOpen() && !movedFromSegment[field.getSegment()] &&
-                     field.getPlayer() == gamestate.getNextPlayer() )
+                if (this.isDestinationField(id))
                 {
-                    selected = id
-                    return true
+                    segmentsUsed[gamestate.getField(selected).getSegment()] = true
+                    moves.push([selected,id])
+                    selected = null
                 }
+                else
+                {
+                    selected = this.isSourceField(id) ? id : null
+                }
+                return true
             }
             return false
         },
@@ -98,17 +103,15 @@ function MoveSelection(state)
             switch (phase)
             {
             case 1:  // end movement phase
-                if (selected != null)
-                {
-                    selected = null
-                }
                 for (var move in moves)
                 {
                     move = moves[move]
                     gamestate.doMove(move[0], move[1])
                 }
-                phase = 2  // NOTE: falls through!
-                subphase = 0
+                selected      = null
+                phase         = 2
+                subphase      = 0
+                // NOTE: falls through!
 
             case 2:  // execute explosions!
                 for (var i in explosions)
@@ -140,6 +143,25 @@ function MoveSelection(state)
         moves = state.moves
         selected = state.selected
         while (phase < state.phase || (phase == state.phase && subphase < state.subphase)) obj.nextPhase()
+    }
+
+    if (phase == 1) {
+        possibleMoves = {}
+        var player = gamestate.getNextPlayer()
+        for (var src in gamestate.getFields())
+        {
+            var field = gamestate.getField(src)
+            if (field.isOpen() && field.getPlayer() == player)
+            {
+                possibleMoves[src] = {}
+                for (var dst in gamestate.getFields())  // FIXME? this is slow
+                {
+                    if (gamestate.isValidMove(src, dst)) {
+                        possibleMoves[src][dst] = true
+                    }
+                }
+            }
+        }
     }
 
     return obj
