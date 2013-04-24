@@ -1,59 +1,8 @@
 <!doctype html>
 <html>
 <head>
+<link rel="stylesheet" type="text/css" href="style/game.css">
 <title>Atlantis</title>
-<style type="text/css">
-
-/* TODO: move this to a separate file! */
-
-body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-}
-
-canvas#Board {
-    border: 1px solid blue;
-    background: #80a0ff;
-    margin: 4px;
-}
-
-#LeftColumn {
-    position: absolute;
-    overflow: auto;
-}
-
-#RightColumn {
-    position: absolute;
-    overflow: auto;
-}
-
-button.Icon {
-    margin:     4px;
-    width:      64px;
-    height:     64px;
-    display:    inline-block;
-    cursor:     pointer;
-    border:     0;
-}
-
-#MoveButton0               { background: url("icons/reset1.png"); background-size: 100%; }
-#MoveButton0:hover         { background: url("icons/reset2.png"); background-size: 100%; }
-#MoveButton0:disabled      { background: url("icons/reset0.png"); background-size: 100%; }
-
-#MoveButton1               { background: url("icons/move1.png"); background-size: 100%; }
-#MoveButton1:hover         { background: url("icons/move2.png"); background-size: 100%; }
-#MoveButton1:disabled      { background: url("icons/move0.png"); background-size: 100%; }
-
-#MoveButton2               { background: url("icons/explode1.png"); background-size: 100%; }
-#MoveButton2:hover         { background: url("icons/explode2.png"); background-size: 100%; }
-#MoveButton2:disabled      { background: url("icons/explode0.png"); background-size: 100%; }
-
-#MoveButton3               { background: url("icons/grow1.png"); background-size: 100%; }
-#MoveButton3:hover         { background: url("icons/grow2.png"); background-size: 100%; }
-#MoveButton3:disabled      { background: url("icons/grow0.png"); background-size: 100%; }
-
-</style>
 </head>
 <body onload="initialize()" onresize="resize()">
 
