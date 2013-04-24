@@ -307,6 +307,9 @@ function initialize()
     })
     server.on('game', function(state) {
         if (gamestate == null) {
+            if (!state) {
+                alert('Game not found!')
+            }
             gamestate = GameState(state)
             initializeGame()
         }

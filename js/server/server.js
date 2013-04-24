@@ -8,21 +8,24 @@ var clients     = {}  // game-id => list of clients
 
 function retrieveGame(id, callback)
 {
-    if (!id || !games[id]) return null
-    fs.readFile(games[id], function(err, data) {
-        if (err) {
-            console.log(err)
-            data = null
-        } else {
-            try {
-                data = JSON.parse(data)
-            } catch (err) {
+    if (!id || !games[id]) {
+        callback(null)
+    } else {
+        fs.readFile(games[id], function(err, data) {
+            if (err) {
                 console.log(err)
                 data = null
+            } else {
+                try {
+                    data = JSON.parse(data)
+                } catch (err) {
+                    console.log(err)
+                    data = null
+                }
             }
-        }
-        callback(data)
-    })
+            callback(data)
+        })
+    }
 }
 
 function storeGame(id, data, callback)
@@ -48,12 +51,15 @@ function connection(client)
 
         if (game_id) return
         var id = data['game']
-        if (!id) return
         retrieveGame(id, function(game) {
-            game_id = id
-            client.emit('game', game)
-            if (!clients[game_id]) clients[game_id] = []
-            clients[game_id].push(client)
+            if (game) {
+                game_id = id
+                client.emit('game', game)
+                if (!clients[game_id]) clients[game_id] = []
+                clients[game_id].push(client)
+            } else {
+                client.emit('game', null)
+            }
         })
     })
 
