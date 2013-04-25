@@ -197,6 +197,33 @@ function GameState(descr)
         addTurn: function(moves) {
             turns.push(moves)
         },
+
+        storeInitialState: function() {
+
+            for (var i in players)
+            {
+                players[i]["stacks"] = {}
+            }
+
+            for (var id in fields)
+            {
+                var field = fields[id]
+                if (field.getPlayer() >= 0)
+                {
+                    players[field.getPlayer()].stacks[id] =
+                        field.isGrowing() ? -field.getStones() : field.getStones()
+                }
+            }
+
+            // TODO: clear turns list?
+        },
+
+        objectify: function() {
+            return { "format":   "Atlantis trancript",
+                     "version":  "1.0",
+                     "segments":  deepCopy(segments),
+                     "players":   deepCopy(players) }
+        }
     }
     initialize.call(obj, descr.segments, descr.players, descr.turns)
     return obj

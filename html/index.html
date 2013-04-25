@@ -7,12 +7,12 @@
 <body onload="initialize()" onresize="resize()">
 
 <div id="LeftColumn">
-  <div id="Buttons">
-    <button class="Icon" id="MoveButton0" title="Reset"   onclick="onMoveButton(0)" disabled>
-    <button class="Icon" id="MoveButton1" title="Move"    onclick="onMoveButton(1)" disabled>
-    <button class="Icon" id="MoveButton2" title="Explode" onclick="onMoveButton(2)" disabled>
-    <button class="Icon" id="MoveButton3" title="Grow"    onclick="onMoveButton(3)" disabled>
-  </div>
+  <div id="Buttons"><!--
+ --><button class="Icon" id="MoveButton0" title="Reset"   onclick="onMoveButton(0)" disabled></button><!--
+ --><button class="Icon" id="MoveButton1" title="Move"    onclick="onMoveButton(1)" disabled></button><!--
+ --><button class="Icon" id="MoveButton2" title="Explode" onclick="onMoveButton(2)" disabled></button><!--
+ --><button class="Icon" id="MoveButton3" title="Grow"    onclick="onMoveButton(3)" disabled></button><!--
+--></div>
   <div id="BoardContainer"></div>
 </div>
 <div id="RightColumn">
@@ -53,6 +53,21 @@
       <p>Click the board segments you want to remove.</p>
       <input type="button" value="Continue..." onclick="onBoardCustomized()">
     </div>
+    <div id="CustomizePlayer">
+      <p>Place initial stones for players by selecting a color and then clicking fields on the board.</p>
+      <p>Note that the order of play is determined by the order in which stones are placed!</p>
+      <p><!--
+     --><input class="ColorButton" id="Color1" name="Color" type="radio" value="maroon"   ><label class="ColorButton" for="Color1" style="background:maroon"   ></label><!--
+     --><input class="ColorButton" id="Color2" name="Color" type="radio" value="red"      ><label class="ColorButton" for="Color2" style="background:red"      ></label><!--
+     --><input class="ColorButton" id="Color3" name="Color" type="radio" value="orange"   ><label class="ColorButton" for="Color3" style="background:orange"   ></label><!--
+     --><input class="ColorButton" id="Color4" name="Color" type="radio" value="green"    ><label class="ColorButton" for="Color4" style="background:green"    ></label><!--
+     --><input class="ColorButton" id="Color5" name="Color" type="radio" value="lime"     ><label class="ColorButton" for="Color5" style="background:lime"     ></label><!--
+     --><input class="ColorButton" id="Color6" name="Color" type="radio" value="blue"     ><label class="ColorButton" for="Color6" style="background:blue"     ></label><!--
+     --><input class="ColorButton" id="Color7" name="Color" type="radio" value="royalblue"><label class="ColorButton" for="Color7" style="background:royalblue"></label><!--
+     --><input class="ColorButton" id="Color8" name="Color" type="radio" value="purple"   ><label class="ColorButton" for="Color8" style="background:purple"   ></label><!--
+     --><input class="ColorButton" id="Color9" name="Color" type="radio" value="fuchsia"  ><label class="ColorButton" for="Color9" style="background:fuchsia"  ></label><!--
+     --><input class="ColorButton" id="Color0" name="Color" type="radio" value="white" selected><label class="WhiteColorButton" for="Color0"></label></p>
+     <p><input type="button" value="Continue..." onclick="onStonesPlaced()"></p>
   </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>
@@ -61,6 +76,7 @@
 <script src="js/common/GameState.js"></script>
 <script src="js/client/EventSource.js"></script>
 <script src="js/client/MoveSelection.js"></script>
+<script src="js/client/setup.js"></script>
 <script src="js/client/client.js"></script>
 </body>
 </html>

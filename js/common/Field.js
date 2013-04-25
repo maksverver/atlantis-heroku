@@ -24,6 +24,11 @@ function Field(id, segment) {
         isGrowing:  function() { return state == 1 },
         isDead:     function() { return state == 2 },
 
+        setPlayer: function(new_player)
+        {
+            if (stones > 0 || state > 0) player = new_player
+        },
+
         setPlayerValue: function(new_player, value)
         {
             player = new_player

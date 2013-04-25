@@ -98,8 +98,12 @@ function redraw()
         var cy = coords.getCY()
 
         makeFieldPath(cx, cy)
-        context.fillStyle = (selection && id == selection.getSelectedField()) ? '#ffe000' :
-            field.isDead() ? '#6080ff' : field.isGrowing() ?'#80ff80' : '#ffffa0'
+        var highlight_color = '#ffe040'
+        context.fillStyle = (selection && id == selection.getSelectedField())
+                                              ? highlight_color
+                          : field.isDead()    ? '#6080ff'
+                          : field.isGrowing() ? '#80ff80'
+                                              : '#ffffa0'
         context.fill()
         context.lineWidth = 0.03
         if (field.isOpen())
@@ -113,14 +117,14 @@ function redraw()
             {
                 if (selection.isSourceField(id))
                 {
-                    drawFieldHighlight(id, '#ffe000', context)
+                    drawFieldHighlight(id, highlight_color, context)
                 }
             }
             else
             {
                 if (selection.isDestinationField(id))
                 {
-                    drawFieldHighlight(id, '#ffe000', context, 0.5)
+                    drawFieldHighlight(id, highlight_color, context, 0.5)
                 }
             }
         }
@@ -284,7 +288,7 @@ function onMoveButton(i)
     if (selection.getPhase() == 4)
     {
         server.emit('turn', selection.getMoves())
-        selection = null
+        disableMoveSelection()
     }
 }
 
@@ -301,20 +305,6 @@ function resize(initial) {
     r.style.left   = l.style.width
 }
 
-function parseHash(hash)
-{
-    hash = hash.substr(hash.indexOf('#') + 1)
-    var params = {}, i = 0
-    while (i < hash.length) {
-        var j = hash.indexOf('&', i)
-        if (j < 0) j = hash.length
-        var k = hash.indexOf('=', k)
-        if (k >= i && k < j) params[hash.substring(i, k)] = hash.substring(k + 1, j)
-        i = j + 1
-    }
-    return params
-}
-
 function moveSelectionChanged()
 {
     if (selection) {
@@ -322,84 +312,6 @@ function moveSelectionChanged()
     }
     updateMoveButtons()
     redraw()
-}
-
-function onBoardShapeChanged()
-{
-    var shape = document.getElementById('BoardShape').value
-    var size  = parseInt(document.getElementById('BoardSize').value)
-
-    var segments = []
-    for (var i = 0; i < (shape == 'hexagon' ? 2*size - 1 : size); ++i)
-    {
-        var begin = shape == 'hexagon'  ? Math.max(i + 1 - size, 0) : 0
-        var end   = shape == 'hexagon'  ? Math.min(2*size - 1, i + size) :
-                    shape == 'triangle' ? i + 1 : size
-        for (var j = begin; j < end; ++j)
-        {
-            var center = Coords(1 + i + 2*j, 1 + 3*i - j)
-            var segment = [ center.toString() ]
-            for (var dir = 0; dir < 6; ++dir)
-            {
-                segment.push(center.getNeighbour(dir).toString())
-            }
-            segments.push(segment)
-        }
-    }
-    gamestate = GameState({"segments":segments})
-    createBoardCanvas()
-    redraw()
-}
-
-function toggleSegment(field)
-{
-    if (field)
-    {
-        var segment = gamestate.getField(field).getSegment()
-        var fields = gamestate.getFields()
-        for (var id in fields)
-        {
-            if (fields[id].getSegment() == segment)
-            {
-                fields[id].toggleLiving()
-            }
-        }
-        redraw()
-    }
-}
-
-function onBoardSelected()
-{
-    document.getElementById('SelectBoard').style.display = 'none'
-    document.getElementById('CustomizeBoard').style.display = 'block'
-    board_events.addHandler('mousedown', toggleSegment)
-}
-
-function onBoardCustomized()
-{
-    // Remove dead fields/segments:
-    var old_segments = gamestate.getSegments()
-    var new_segments = []
-    for (var i = 0; i < old_segments.length; ++i)
-    {
-        var new_segment = []
-        for (var j = 0; j < old_segments[i].length; ++j)
-        {
-            if (!gamestate.getField(old_segments[i][j]).isDead())
-            {
-                new_segment.push(old_segments[i][j])
-            }
-        }
-        if (new_segment.length > 0) new_segments.push(new_segment)
-    }
-    if (new_segments.length > 0)
-    {
-        board_events.removeHandler('mousedown', toggleSegment)
-        document.getElementById('CustomizeBoard').style.display = 'none'
-        gamestate = GameState({'segments':new_segments})
-        createBoardCanvas()
-        redraw()
-    }
 }
 
 function moveSelectionMouseDownHandler(field)
@@ -465,6 +377,36 @@ function installDragHandler()
     })
 }
 
+function parseHash(hash)
+{
+    hash = hash.substr(hash.indexOf('#') + 1)
+    var params = {}, i = 0
+    while (i < hash.length)
+    {
+        var j = hash.indexOf('&', i)
+        if (j < 0) j = hash.length
+        var k = hash.indexOf('=', k)
+        if (k >= i && k < j)
+        {
+            params[decodeURIComponent(hash.substring(i, k))] = 
+                decodeURIComponent(hash.substring(k + 1, j))
+        }
+        i = j + 1
+    }
+    return params
+}
+
+function formatHash(obj)
+{
+    hash = "#"
+    for (key in obj)
+    {
+        if (hash != "#") hash += "&"
+        hash += encodeURIComponent(key) + '=' + encodeURIComponent(obj[key])
+    }
+    return hash
+}
+
 function initialize()
 {
     installDragHandler()
@@ -480,7 +422,6 @@ function initialize()
             l.style.width = parseInt(l.style.width) + dx + 'px'
             r.style.left  = rleft + dx + 'px'
             r.style.width = rwidth - dx + 'px'
-            console.log(r.style.left + '/' + dx)
         }
     })
     resize(true)
@@ -492,44 +433,44 @@ function initialize()
     server = io.connect(document.location.origin)
     server.on('connection-failed', function () { alert('Connection failed!') })
     server.on('disconnected', function () { alert('Connection lost!') })
+    server.on('game', function(state) {
+        gamestate = GameState(state)
+        createBoardCanvas()
+        enableMoveSelection()
+        redraw()
+    })
+    server.on('error-message', function(msg) {
+        alert("The server said: " + msg)
+    })
+    server.on('selection', function(state) {
+        gamestate.reset()
+        enableMoveSelection()
+        selection = MoveSelection(state)  // override
+        updateMoveButtons()
+        redraw()
+    })
+    server.on('turn', function(moves) {
+        gamestate.addTurn(moves)
+        gamestate.reset()  // necessary since growth == commit
+        enableMoveSelection()
+        redraw()
+    })
+    server.on('created', function(game_id) {
+        params['game'] = game_id
+        document.location.hash = formatHash(params)
+        server.emit('join', {'game': game_id})
+    })
+
+    var connected = 0
     server.on('connect', function() {
+        // NOTE: this fires on automatic reconnects too!
+        if (connected++) return
         if (!params['game'])
         {
-            document.getElementById('SelectBoard').style.display = 'block'
-            onBoardShapeChanged()
+            setup()
         }
         else
         {
-            // Connect to server to request game state:
-            server.on('game', function(state) {
-                if (gamestate == null)
-                {
-                    if (!state)
-                    {
-                        alert('Game not found!')
-                    }
-                    else
-                    {
-                        gamestate = GameState(state)
-                        createBoardCanvas()
-                        enableMoveSelection()
-                        redraw()
-                    }
-                }
-            })
-            server.on('selection', function(state) {
-                gamestate.reset()
-                selection = MoveSelection(state)
-                updateMoveButtons()
-                redraw()
-            })
-            server.on('turn', function(moves) {
-                gamestate.addTurn(moves)
-                gamestate.reset()  // necessary since growth == commit
-                selection = MoveSelection()
-                updateMoveButtons()
-                redraw()
-            })
             server.emit('join', {'game': params['game']})
         }
     })

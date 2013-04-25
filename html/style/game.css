@@ -1,14 +1,16 @@
 body {
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
+    margin:     0;
+    padding:    0;
+    overflow:   hidden;
+    background: white;
+    color:      black;
 }
 
 body, input, select {
     font: 10pt Verdana, sans-serif;
 }
 
-#SelectBoard, #CustomizeBoard {
+#SelectBoard, #CustomizeBoard, #CustomizePlayer {
     display: none;
 }
 
@@ -53,6 +55,37 @@ button.Icon {
     display:    inline-block;
     cursor:     pointer;
     border:     0;
+}
+
+input.ColorButton {
+    display: none;
+}
+label.ColorButton, label.WhiteColorButton {
+    display: inline-block;
+    width:   2em;
+    height:  2em;
+    border:  0;
+    border-radius: 2em;
+    margin: 0.4em 0.2em 0.4em 0.2em; 
+    position: relative;
+}
+label.ColorButton {
+    text-align: center;
+}
+input.ColorButton:checked + label.ColorButton {
+    border: 0.4em solid black;
+    margin: 0;
+}
+label.WhiteColorButton {
+    border:  1px dashed #888;
+}
+label.ColorButton span {
+    position:absolute;
+    left:  0;
+    right: 0;
+    font-size: 1.4em;  /* why?!! */
+    text-align:center;
+    color:white;
 }
 
 #MoveButton0               { background: url("../icons/reset1.png"); background-size: 100%; }
