@@ -1,11 +1,7 @@
 HTML:
-
+  - board creator
+  - server should validate turns (and moveselections?)
+  - server should calculate stable regions & skip players without turns
+    (careful: if nobody can move, the game is over)
   - option to show field coordinates
-
-   - dim unselectable fields (e.g. when segment has already been moved from)
-   - clearer turn highlighting
-   ^ for these, just highlight all possible fields?
-
-
- 
-  - Maybe later: textures for the colorblind?
+  - maybe later: textures for the colorblind?

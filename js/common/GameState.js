@@ -1,3 +1,7 @@
+function deepCopy(obj)
+{
+    return obj ? JSON.parse(JSON.stringify(obj)) : null
+}
 
 //
 // The GameState class represents the state of the game between turns.
@@ -27,40 +31,44 @@ function GameState(descr)
         }
 
         // Put player's stones on fields:
-        for (var player in players)
-        {
-            for (var id in players[player].stacks)
+        if (players) {
+            for (var player in players)
             {
-                fields[id].setPlayerValue(player, players[player].stacks[id])
+                for (var id in players[player].stacks)
+                {
+                    fields[id].setPlayerValue(player, players[player].stacks[id])
+                }
             }
         }
 
         // Process player's turns:
-        for (var turn = 0; turn < turns.length; ++turn)
-        {
-            var player = turn % players.length
-
-            // Phase 1: movement
-            for (var i in turns[turn]) {
-                var move = turns[turn][i]
-                this.doMove(move[0], move[1])
-            }
-
-            // Phase 2: explosions
-            var explosions
-            while ((explosions = this.findExplosions(player)).length > 0)
+        if (turns) {
+            for (var turn = 0; turn < turns.length; ++turn)
             {
-                for (var i in explosions)
-                {
-                    this.doExplosion(player, explosions[i])
+                var player = turn % players.length
+
+                // Phase 1: movement
+                for (var i in turns[turn]) {
+                    var move = turns[turn][i]
+                    this.doMove(move[0], move[1])
                 }
-            }
 
-            // Phase 3: growth
-            var growing = this.findGrowing(player)
-            for (var i in growing)
-            {
-                fields[growing[i]].addPlayerStones(player, 1)
+                // Phase 2: explosions
+                var explosions
+                while ((explosions = this.findExplosions(player)).length > 0)
+                {
+                    for (var i in explosions)
+                    {
+                        this.doExplosion(player, explosions[i])
+                    }
+                }
+
+                // Phase 3: growth
+                var growing = this.findGrowing(player)
+                for (var i in growing)
+                {
+                    fields[growing[i]].addPlayerStones(player, 1)
+                }
             }
         }
     }
@@ -72,7 +80,7 @@ function GameState(descr)
         getTurns:       function()   { return turns },
         getFields:      function()   { return fields },
         getField:       function(id) { return fields[id] || null },
-        getNextPlayer:  function()   { return turns.length % players.length },
+        getNextPlayer:  function()   { return turns ? turns.length % players.length : null },
 
         isValidMove: function(src, dst)
         {

@@ -1,11 +1,6 @@
 DX = [ +1, +1,  0, -1, -1,  0 ]
 DY = [  0, +1, +1,  0, -1, -1 ]
 
-function deepCopy(obj)
-{
-    return JSON.parse(JSON.stringify(obj))
-}
-
 //
 //  The Coords class represents an (immutable) pair of hexagonal grid coordinates.
 //

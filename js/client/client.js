@@ -4,6 +4,8 @@ var selection            = null
 var board_canvas         = null
 var board_canvas_context = null
 var server               = null
+var board_events         = EventSource()
+var mouse_events         = EventSource()
 
 function fixEventOffset(event, element)
 {
@@ -105,7 +107,7 @@ function redraw()
             context.strokeStyle = '#c0c080'
             context.stroke()
         }
-        if (selection)
+        if (selection && selection.getPhase() == 1)
         {
             if (!selection.getSelectedField())
             {
@@ -286,17 +288,17 @@ function onMoveButton(i)
     }
 }
 
-function resize() {
+function resize(initial) {
     var h = innerHeight
     var w = innerWidth
     var l = document.getElementById("LeftColumn")
-    //var r = document.getElementById("RightColumn")
-    //l.style.width  = parseInt(0.7*w) + 'px'
-    l.style.width  = w + 'px'
+    var r = document.getElementById("RightColumn")
+    var ratio = initial ? 0.7 : parseInt(l.style.width)/(parseInt(l.style.width) + parseInt(r.style.width))
+    l.style.width  = parseInt(ratio*w) + 'px'
     l.style.height = h + 'px'
-    //r.style.width  = parseInt(0.3*w) + 'px'
-    //r.style.height = h + 'px'
-    //r.style.left   = l.style.width
+    r.style.width  = w - parseInt(ratio*w) + 'px'
+    r.style.height = h + 'px'
+    r.style.left   = l.style.width
 }
 
 function parseHash(hash)
@@ -322,45 +324,231 @@ function moveSelectionChanged()
     redraw()
 }
 
+function onBoardShapeChanged()
+{
+    var shape = document.getElementById('BoardShape').value
+    var size  = parseInt(document.getElementById('BoardSize').value)
+
+    var segments = []
+    for (var i = 0; i < (shape == 'hexagon' ? 2*size - 1 : size); ++i)
+    {
+        var begin = shape == 'hexagon'  ? Math.max(i + 1 - size, 0) : 0
+        var end   = shape == 'hexagon'  ? Math.min(2*size - 1, i + size) :
+                    shape == 'triangle' ? i + 1 : size
+        for (var j = begin; j < end; ++j)
+        {
+            var center = Coords(1 + i + 2*j, 1 + 3*i - j)
+            var segment = [ center.toString() ]
+            for (var dir = 0; dir < 6; ++dir)
+            {
+                segment.push(center.getNeighbour(dir).toString())
+            }
+            segments.push(segment)
+        }
+    }
+    gamestate = GameState({"segments":segments})
+    createBoardCanvas()
+    redraw()
+}
+
+function toggleSegment(field)
+{
+    if (field)
+    {
+        var segment = gamestate.getField(field).getSegment()
+        var fields = gamestate.getFields()
+        for (var id in fields)
+        {
+            if (fields[id].getSegment() == segment)
+            {
+                fields[id].toggleLiving()
+            }
+        }
+        redraw()
+    }
+}
+
+function onBoardSelected()
+{
+    document.getElementById('SelectBoard').style.display = 'none'
+    document.getElementById('CustomizeBoard').style.display = 'block'
+    board_events.addHandler('mousedown', toggleSegment)
+}
+
+function onBoardCustomized()
+{
+    // Remove dead fields/segments:
+    var old_segments = gamestate.getSegments()
+    var new_segments = []
+    for (var i = 0; i < old_segments.length; ++i)
+    {
+        var new_segment = []
+        for (var j = 0; j < old_segments[i].length; ++j)
+        {
+            if (!gamestate.getField(old_segments[i][j]).isDead())
+            {
+                new_segment.push(old_segments[i][j])
+            }
+        }
+        if (new_segment.length > 0) new_segments.push(new_segment)
+    }
+    if (new_segments.length > 0)
+    {
+        board_events.removeHandler('mousedown', toggleSegment)
+        document.getElementById('CustomizeBoard').style.display = 'none'
+        gamestate = GameState({'segments':new_segments})
+        createBoardCanvas()
+        redraw()
+    }
+}
+
+function moveSelectionMouseDownHandler(field)
+{
+    if (selection.onMouseDown(field)) moveSelectionChanged()
+}
+
+function moveSelectionMouseUpHandler(field)
+{
+    if (selection.onMouseUp(field)) moveSelectionChanged()
+}
+
+function enableMoveSelection()
+{
+    if (!selection)
+    {
+        selection = MoveSelection()
+        board_events.addHandler('mousedown', moveSelectionMouseDownHandler)
+        board_events.addHandler('mouseup',   moveSelectionMouseUpHandler)
+        updateMoveButtons()
+    }
+}
+
+function disableMoveSelection()
+{
+    if (selection)
+    {
+        selection = null
+        board_events.removeHandler('mousedown', moveSelectionMouseDownHandler)
+        board_events.removeHandler('mouseup',   moveSelectionMouseUpHandler)
+        updateMoveButtons()
+    }
+}
+
+function installDragHandler()
+{
+    var x, y, t
+    var onMouseMoved = function(event) {
+        var dx = event.clientX - x
+        var dy = event.clientY - y
+        x += dx
+        y += dy
+        mouse_events.emit('drag', t, dx, dy)
+    }
+    var dragging = true
+    document.addEventListener("mousedown", function(event) {
+        if (!dragging)
+        {
+            t = event.target
+            if (t && t.className.indexOf("Draggable") >= 0)
+            {
+                x = event.clientX
+                y = event.clientY
+                event.preventDefault()
+                document.addEventListener("mousemove", onMouseMoved)
+                dragging = true
+            }
+        }
+    })
+    document.addEventListener("mouseup", function(event) {
+        document.removeEventListener("mousemove", onMouseMoved)
+        dragging = false
+    })
+}
+
 function initialize()
 {
+    installDragHandler()
+    mouse_events.addHandler('drag', function(target, dx, dy) {
+        if (target == document.getElementById('ColumnSplitter'))
+        {
+            var l = document.getElementById("LeftColumn")
+            var r = document.getElementById("RightColumn")
+            var rwidth = parseInt(r.style.width)
+            var rleft  = parseInt(r.style.left)
+            dx = Math.min(dx, rwidth - Math.max(rwidth - dx, 4))
+            dx = Math.max(dx, -rleft)
+            l.style.width = parseInt(l.style.width) + dx + 'px'
+            r.style.left  = rleft + dx + 'px'
+            r.style.width = rwidth - dx + 'px'
+            console.log(r.style.left + '/' + dx)
+        }
+    })
+    resize(true)
+
+    // Parse parameters passed in URL hash:
     var params = parseHash(document.location.hash)
+
+    // Connect to server
     server = io.connect(document.location.origin)
     server.on('connection-failed', function () { alert('Connection failed!') })
     server.on('disconnected', function () { alert('Connection lost!') })
     server.on('connect', function() {
-        server.emit('join', { 'game': params['game'] })
-    })
-    server.on('game', function(state) {
-        if (gamestate == null) {
-            if (!state) {
-                alert('Game not found!')
-            }
-            gamestate = GameState(state)
-            initializeGame()
+        if (!params['game'])
+        {
+            document.getElementById('SelectBoard').style.display = 'block'
+            onBoardShapeChanged()
+        }
+        else
+        {
+            // Connect to server to request game state:
+            server.on('game', function(state) {
+                if (gamestate == null)
+                {
+                    if (!state)
+                    {
+                        alert('Game not found!')
+                    }
+                    else
+                    {
+                        gamestate = GameState(state)
+                        createBoardCanvas()
+                        enableMoveSelection()
+                        redraw()
+                    }
+                }
+            })
+            server.on('selection', function(state) {
+                gamestate.reset()
+                selection = MoveSelection(state)
+                updateMoveButtons()
+                redraw()
+            })
+            server.on('turn', function(moves) {
+                gamestate.addTurn(moves)
+                gamestate.reset()  // necessary since growth == commit
+                selection = MoveSelection()
+                updateMoveButtons()
+                redraw()
+            })
+            server.emit('join', {'game': params['game']})
         }
     })
-    server.on('selection', function(state) {
-        gamestate.reset()
-        selection = MoveSelection(state)
-        updateMoveButtons()
-        redraw()
-    })
-    server.on('turn', function(moves) {
-        gamestate.addTurn(moves)
-        gamestate.reset()  // necessary since growth == commit
-        selection = MoveSelection()
-        updateMoveButtons()
-        redraw()
-    })
-    resize()
 }
 
-function initializeGame()
+// (Re)creates the board canvas (assuming gamestate has been initialized!)
+function createBoardCanvas()
 {
-    selection = MoveSelection()
+    var board_container = document.getElementById("BoardContainer")
 
-    var bbox = [0,0,0,0]    // bounding box (x1,y1,x2,y2)
+    if (board_canvas)
+    {
+        // Get rid of old canvas
+        board_container.removeChild(board_canvas)
+        board_canvas = board_canvas_context = null
+    }
+
+    // Calculate bounding box:
+    var bbox = [Infinity,Infinity,-Infinity,-Infinity]  // bounding box (x1,y1,x2,y2)
     for (var id in gamestate.getFields())
     {
         var coords = parseCoords(id)
@@ -382,26 +570,19 @@ function initializeGame()
     board_canvas.id = "Board"
     board_canvas.width  = Math.ceil((bbox[2] - bbox[0])*scale + 2*margin)
     board_canvas.height = Math.ceil((bbox[3] - bbox[1])*scale + 2*margin)
-    document.getElementById("BoardContainer").appendChild(board_canvas)
+    board_container.appendChild(board_canvas)
+
+    board_canvas.addEventListener("mousedown", function(event) {
+        fixEventOffset(event, board_canvas)
+        board_events.emit('mousedown', getMouseOverField(event))
+        event.preventDefault()  // prevent text-selection while dragging
+    }, false)
+    board_canvas.addEventListener("mouseup", function(event) {
+        board_events.emit('mouseup', getMouseOverField(event))
+    }, false)
 
     board_canvas_context = board_canvas.getContext('2d')
     board_canvas_context.translate(margin, board_canvas.height - margin)
     board_canvas_context.scale(scale, -scale)
     board_canvas_context.translate(-bbox[0], -bbox[1])
-    board_canvas.addEventListener("mousedown", function(event) {
-        fixEventOffset(event, board_canvas)
-        if (selection.onMouseDown(getMouseOverField(event))) {
-            moveSelectionChanged()
-        }
-        event.preventDefault()  // prevent text-selection while dragging
-    }, false)
-    board_canvas.addEventListener("mouseup", function(event) {
-        fixEventOffset(event, board_canvas)
-        if (selection.onMouseUp(getMouseOverField(event))) {
-            moveSelectionChanged()
-        }
-    }, false)
-
-    updateMoveButtons()
-    redraw()
 }

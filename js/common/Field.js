@@ -95,6 +95,17 @@ function Field(id, segment) {
             stones = 0
             player = p
             if (state < 2) ++state
+        },
+
+        toggleLiving: function(p) {
+            if (stones > 0)
+            {
+                state = (state == 1) ? 0 : 1
+            }
+            else
+            {
+                state = (state == 2) ? 0 : 2
+            }
         }
 
     }

@@ -15,12 +15,51 @@
   </div>
   <div id="BoardContainer"></div>
 </div>
-<!--<div id="RightColumn">
-</div>-->
+<div id="RightColumn">
+  <div id="ColumnSplitter" class="Draggable"></div>
+    <div id="RightColumnContents">
+    <div id="SelectBoard">
+      <table>
+        <tr>
+        <th align="left">Shape</th>
+        <td align="right">
+            <select id="BoardShape" onchange="onBoardShapeChanged()">
+            <option value="triangle">Triangle</option>
+            <option value="hexagon">Hexagon</option>
+            <option value="rhombus">Rhombus</option>
+            </select>
+        </td>
+        </tr>
+        <tr>
+        <th align="left">Size</th>
+        <td align="right">
+            <select id="BoardSize" onchange="onBoardShapeChanged()">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            </select>
+        </td>
+        </tr>
+        <tr><th colspan="2"><input type="button" value="Continue..." onclick="onBoardSelected()"></th></tr>
+      </table>
+    </div>
+    <div id="CustomizeBoard">
+      <p>Click the board segments you want to remove.</p>
+      <input type="button" value="Continue..." onclick="onBoardCustomized()">
+    </div>
+  </div>
+</div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="js/common/Coords.js"></script>
 <script src="js/common/Field.js"></script>
 <script src="js/common/GameState.js"></script>
+<script src="js/client/EventSource.js"></script>
 <script src="js/client/MoveSelection.js"></script>
 <script src="js/client/client.js"></script>
 </body>
