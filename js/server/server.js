@@ -7,21 +7,29 @@ var fs          = require('fs')
 var socket_io   = require('socket.io')
 
 var games       = {}  // game-id => path
-var clients     = {}  // game-id => list of clients
+var clients     = {}  // game-id => list of clients connected to the game
 
 function retrieveGame(id, callback)
 {
-    if (!id || !games[id]) {
+    if (!id || !games[id])
+    {
         callback(null)
-    } else {
+    }
+    else
+    {
         fs.readFile(games[id], function(err, data) {
-            if (err) {
+            if (err)
+            {
                 console.log(err)
                 data = null
-            } else {
-                try {
+            } else
+            {
+                try
+                {
                     data = JSON.parse(data)
-                } catch (err) {
+                }
+                catch (err)
+                {
                     console.log(err)
                     data = null
                 }
@@ -33,12 +41,16 @@ function retrieveGame(id, callback)
 
 function storeGame(id, data, callback)
 {
-    if (!id || !games[id]) return null
+    if (!games[id]) throw new Error("Unknown game: '" + id + "'")
+
     var tempName = games[id] + '.new'
     fs.writeFile(tempName, JSON.stringify(data), function(err) {
-        if (err) {
+        if (err)
+        {
             callback(err)
-        } else {
+        }
+        else
+        {
             fs.rename(tempName, games[id], callback)
         }
     })
@@ -47,19 +59,30 @@ function storeGame(id, data, callback)
 function createGame(data, callback)
 {
     crypto.randomBytes(8, function(err, buf) {
-        if (err) {
+        if (err)
+        {
             callback(err)
-        } else {
+        }
+        else
+        {
             var id = buf.toString("hex")
-            if (games[id]) {
-                createGame(data, callback)  // collission -- retry!
-            } else {
+            if (games[id])
+            {
+                // We randomly-generated a game id that is already in use!
+                // This should be rare, so let's just try again:
+                createGame(data, callback)
+            }
+            else
+            {
                 games[id] = gamesdir + '/' + id + gamesuffix
                 storeGame(id, data, function(err) {
-                    if (err) {
+                    if (err)
+                    {
                         delete games[id]
                         callback(err, null)
-                    } else {
+                    }
+                    else
+                    {
                         callback(null, id)
                     }
                 })
@@ -68,9 +91,7 @@ function createGame(data, callback)
     })
 }
 
-// TODO: cache games in memory (while cliens are connected)
-
-function connection(client)
+function onConnection(client)
 {
     var game_id = null
 
@@ -83,10 +104,13 @@ function connection(client)
         data["turns"] = []
 
         createGame(data, function(err, id) {
-            if (err) {
+            if (err)
+            {
                 console.log("Failed to create game: " + err)
                 client.emit('error-message', "Could not create game!")
-            } else {
+            }
+            else
+            {
                 console.log('Created game "' + id + '".')
                 client.emit('created', id)
             }
@@ -96,14 +120,17 @@ function connection(client)
     client.on('join', function (data) {
 
         if (game_id) return
-        var id = data['game']
-        retrieveGame(id, function(game) {
-            if (game) {
-                game_id = id
+
+        retrieveGame(data['game', function(game) {
+            if (game)
+            {
+                game_id = data['game']
                 client.emit('game', game)
                 if (!clients[game_id]) clients[game_id] = []
                 clients[game_id].push(client)
-            } else {
+            }
+            else
+            {
                 client.emit('error-message', "Game not found!")
             }
         })
@@ -112,8 +139,8 @@ function connection(client)
     client.on('selection', function(data) {
 
         // TODO: validate selection is sane?
-
-        for (var i in clients[game_id]) {
+        for (var i in clients[game_id])
+        {
             var c = clients[game_id][i]
             if (c != client) c.emit('selection', data)
         }
@@ -121,18 +148,21 @@ function connection(client)
 
     client.on('turn', function(data) {
 
-        // TODO: validate turn!!! (if invalid, issue reset. (how?))
+        // TODO: validate turn!!!
         var turn = data
 
         retrieveGame(game_id, function(game) {
             if (!game) return
             game["turns"].push(turn)
             storeGame(game_id, game, function(err) {
-                if (err) {
+                if (err)
+                {
                     console.log(err)
-                } else {
-                    for (var i in clients[game_id]) {
-                        console.log('sending ' + turn + ' to ' + clients[game_id][i].id)
+                }
+                else
+                {
+                    for (var i in clients[game_id])
+                    {
                         clients[game_id][i].emit('turn', turn)
                     }
                 }
@@ -143,16 +173,18 @@ function connection(client)
     client.on('disconnect', function() {
         if (!game_id) return
 
-        for (var i in clients[game_id]) {
-            if (clients[game_id][i] === client) {
+        for (var i in clients[game_id])
+        {
+            if (clients[game_id][i] === client)
+            {
                 clients[game_id].splice(i, 1)
             }
         }
     })
 }
 
-exports.listen = function(server, dir) {
-
+exports.listen = function(server, dir)
+{
     gamesdir = dir
 
     fs.readdir(gamesdir, function (err, files) {
@@ -160,14 +192,19 @@ exports.listen = function(server, dir) {
         if (err) throw err
 
         // Build list of known games:
-        for (var i in files) {
+        var num_games = 0
+        for (var i in files)
+        {
             var j = files[i].lastIndexOf(gamesuffix)
-            if (j > 0 && j == files[i].length - gamesuffix.length) {
+            if (j > 0 && j == files[i].length - gamesuffix.length)
+            {
                 games[files[i].substring(0, j)] = gamesdir + '/' + files[i]
+                num_games += 1
             }
         }
+        info.log(num_games + " games found.")
 
         // Listen for incoming connections:
-        socket_io.listen(server).sockets.on('connection', connection)
+        socket_io.listen(server).sockets.on('connection', onConnection)
     })
 }
