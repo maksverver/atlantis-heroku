@@ -519,6 +519,7 @@ function createBoardCanvas()
         event.preventDefault()  // prevent text-selection while dragging
     }, false)
     board_canvas.addEventListener("mouseup", function(event) {
+        fixEventOffset(event, board_canvas)
         board_events.emit('mouseup', getMouseOverField(event))
     }, false)
 
