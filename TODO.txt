@@ -1,7 +1,7 @@
   - chat?
   - revise transcript format to allow commentary?
   - make code formatting/identifier naming consistent across sources
-  - optimize generation of possible moves in MoveSelection
+  - separate player URLs!
 
 HTML:
   - make reset button go back only one (sub)phase or move

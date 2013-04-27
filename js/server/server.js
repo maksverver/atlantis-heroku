@@ -60,8 +60,6 @@ function onConnection(client)
 
         // FIXME: should cache game state
         storage.retrieve(game_id, function(err, game) {
-            console.log("err="+err)
-            console.log("game="+game)
             if (!game)
             {
                 client.emit('error-message', "Game not found!")
@@ -81,28 +79,37 @@ function onConnection(client)
         })
     })
 
-    client.on('turn', function(turn) {
+    client.on('turn', function(moves) {
 
-        // TODO: validate turn!!!
 
+        // FIXME: should cache game state
         storage.retrieve(game_id, function(err, game) {
-            if (err)
+            if (!game)
             {
                 client.emit('error-message', "Game not found!")
             }
             else
             {
-                game["turns"].push(turn)
+                // Sanitize turn:
+                turn = MoveSelection(GameState(game), {
+                    phase:      1,
+                    subphase:   0,
+                    selected:   null,
+                    moves:      moves }).getMoves()
+
+                // Store turn:
+                game["turns"].push(moves)
+
                 storage.store(game_id, game, function(err) {
                     if (err)
                     {
-                        console.log(err)
+                        client.emit('error-message', "Failed to store turn!")
                     }
                     else
                     {
                         for (var i in clients[game_id])
                         {
-                            clients[game_id][i].emit('turn', turn)
+                            clients[game_id][i].emit('turn', moves)
                         }
                     }
                 })
