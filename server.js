@@ -11,5 +11,5 @@ var storage = require('./js/server/FileStorage.js')
 storage.setDirectory(__dirname + '/games')
 
 var server = http.createServer(app)
-server.listen('8888')
+server.listen('8027')
 atlantis.listen(server, storage)
