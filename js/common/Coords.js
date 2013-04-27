@@ -30,6 +30,11 @@ function Coords(x, y)
         return encodeX(x) + (y + 1)
     }
 
+    function toCoords()
+    {
+        return this
+    }
+
     function getNeighbour(dir)
     {
         return Coords(x + DX[dir], y + DY[dir])
@@ -62,6 +67,7 @@ function Coords(x, y)
 
     return {
         toString:       toString,
+        toCoords:       toCoords,
         getNeighbour:   getNeighbour,
         getDirectionTo: getDirectionTo,
         getDistanceTo:  getDistanceTo,
@@ -73,9 +79,18 @@ function Coords(x, y)
 
 function parseCoords(descr)
 {
-    var m = descr.match(/^(-?[a-z]*)(0|-?[1-9][0-9]*)$/)
-    if (!m) return null
-    return Coords(decodeX(m[1]), parseInt(m[2], 10) - 1)
+    switch (typeof descr)
+    {
+    case "object":
+        if (descr.toCoords) return descr.toCoords()
+        // NOTE: falls through, since element may have a toString() method
+    case "string":
+        var m = descr.match(/^(-?[a-z]*)(0|-?[1-9][0-9]*)$/)
+        if (m) return Coords(decodeX(m[1]), parseInt(m[2], 10) - 1)
+        // NOTE: falls through
+    default:
+        return NULL
+    }
 }
 
 if (typeof exports == 'object')

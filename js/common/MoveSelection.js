@@ -23,9 +23,11 @@ function MoveSelection(gamestate, initial)
         if (field.isOpen() && field.getPlayer() == player)
         {
             possibleMoves[src] = {}
-            for (var dst in gamestate.getFields())  // FIXME? this is slow
+            for (var dir = 0; dir < 6; ++dir)
             {
-                if (gamestate.isValidMove(src, dst))
+                for ( var dst = field.getCoords().getNeighbour(dir);
+                      gamestate.isValidMove(src, dst);
+                      dst = dst.getNeighbour(dir) )
                 {
                     possibleMoves[src][dst] = true
                 }
@@ -189,8 +191,8 @@ function MoveSelection(gamestate, initial)
     function objectify()
     {
         return { "phase":      phase,
-                 "selected":   selected,
                  "subphase":   subphase,
+                 "selected":   selected,
                  "moves":      moves }
     }
 
