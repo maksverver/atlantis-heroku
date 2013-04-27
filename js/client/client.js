@@ -6,6 +6,7 @@ var board_canvas_context = null
 var server               = null
 var board_events         = EventSource()
 var mouse_events         = EventSource()
+var my_turn              = false
 
 function fixEventOffset(event, element)
 {
@@ -260,11 +261,11 @@ function redraw()
 
 function updateMoveButtons()
 {
-    document.getElementById('MoveButton' + 0).disabled = !selection
+    document.getElementById('MoveButton' + 0).disabled = !my_turn || !selection
     for (var i = 1; i < 4; ++i)
     {
         document.getElementById('MoveButton' + i).disabled
-            = !selection || selection.getPhase() != i
+            = !my_turn || !selection || selection.getPhase() != i
     }
 }
 
@@ -284,33 +285,24 @@ function onMoveButton(i)
     {
         selection.nextPhase()
     }
-    moveSelectionChanged()
     if (selection.getPhase() == 4)
     {
         server.emit('turn', selection.getMoves())
-        disableMoveSelection()
+        setMyTurn(false)
     }
-}
-
-function resize(initial) {
-    var h = innerHeight
-    var w = innerWidth
-    var l = document.getElementById("LeftColumn")
-    var r = document.getElementById("RightColumn")
-    var ratio = initial ? 0.7 : parseInt(l.style.width)/(parseInt(l.style.width) + parseInt(r.style.width))
-    l.style.width  = parseInt(ratio*w) + 'px'
-    l.style.height = h + 'px'
-    r.style.width  = w - parseInt(ratio*w) + 'px'
-    r.style.height = h + 'px'
-    r.style.left   = l.style.width
+    else
+    {
+        moveSelectionChanged()
+    }
+    updateMoveButtons()
 }
 
 function moveSelectionChanged()
 {
-    if (selection) {
+    if (selection)
+    {
         server.emit('selection', selection.objectify())
     }
-    updateMoveButtons()
     redraw()
 }
 
@@ -324,22 +316,20 @@ function moveSelectionMouseUpHandler(field)
     if (selection.onMouseUp(field)) moveSelectionChanged()
 }
 
-function enableMoveSelection()
+function setMyTurn(new_value)
 {
-    if (!selection)
+    if (my_turn == new_value) return
+
+    if (new_value)
     {
-        selection = MoveSelection()
+        my_turn = true
         board_events.addHandler('mousedown', moveSelectionMouseDownHandler)
         board_events.addHandler('mouseup',   moveSelectionMouseUpHandler)
         updateMoveButtons()
     }
-}
-
-function disableMoveSelection()
-{
-    if (selection)
+    else
     {
-        selection = null
+        my_turn = false
         board_events.removeHandler('mousedown', moveSelectionMouseDownHandler)
         board_events.removeHandler('mouseup',   moveSelectionMouseUpHandler)
         updateMoveButtons()
@@ -407,6 +397,20 @@ function formatHash(obj)
     return hash
 }
 
+function resize(initial)
+{
+    var h = innerHeight
+    var w = innerWidth
+    var l = document.getElementById("LeftColumn")
+    var r = document.getElementById("RightColumn")
+    var ratio = initial ? 0.7 : parseInt(l.style.width)/(parseInt(l.style.width) + parseInt(r.style.width))
+    l.style.width  = parseInt(ratio*w) + 'px'
+    l.style.height = h + 'px'
+    r.style.width  = w - parseInt(ratio*w) + 'px'
+    r.style.height = h + 'px'
+    r.style.left   = l.style.width
+}
+
 function initialize()
 {
     installDragHandler()
@@ -435,24 +439,26 @@ function initialize()
     server.on('disconnected', function () { alert('Connection lost!') })
     server.on('game', function(state) {
         gamestate = GameState(state)
+        selection = new MoveSelection()
         createBoardCanvas()
-        enableMoveSelection()
+        setMyTurn(true)
         redraw()
     })
     server.on('error-message', function(msg) {
         alert("The server said: " + msg)
     })
-    server.on('selection', function(state) {
+    server.on('selection', function(obj) {
         gamestate.reset()
-        enableMoveSelection()
-        selection = MoveSelection(state)  // override
+        selection = MoveSelection(obj)
         updateMoveButtons()
         redraw()
     })
     server.on('turn', function(moves) {
         gamestate.addTurn(moves)
-        gamestate.reset()  // necessary since growth == commit
-        enableMoveSelection()
+        gamestate.reset()
+        selection = MoveSelection()
+        setMyTurn(true)
+        updateMoveButtons()
         redraw()
     })
     server.on('created', function(game_id) {
