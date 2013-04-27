@@ -139,27 +139,59 @@ function MoveSelection(state)
         }
     }
 
-    if (state) {
-        moves = state.moves
-        selected = state.selected
-        while (phase < state.phase || (phase == state.phase && subphase < state.subphase)) obj.nextPhase()
+    var player = gamestate.getNextPlayer()
+    for (var src in gamestate.getFields())
+    {
+        var field = gamestate.getField(src)
+        if (field.isOpen() && field.getPlayer() == player)
+        {
+            possibleMoves[src] = {}
+            for (var dst in gamestate.getFields())  // FIXME? this is slow
+            {
+                if (gamestate.isValidMove(src, dst)) {
+                    possibleMoves[src][dst] = true
+                }
+            }
+        }
     }
 
-    if (phase == 1) {
-        possibleMoves = {}
-        var player = gamestate.getNextPlayer()
-        for (var src in gamestate.getFields())
+    // Parse the state object as returned by objectify(), if possible:
+    if (state instanceof Object)
+    {
+        /* Note that this parsing code is intended to be robust: it will not
+           crash if an invalid state object is passed in, and it will not accept
+           invalid moves. */
+        if (state.moves instanceof Array)
         {
-            var field = gamestate.getField(src)
-            if (field.isOpen() && field.getPlayer() == player)
+            for (var i = 0; i < state.moves.length; ++i)
             {
-                possibleMoves[src] = {}
-                for (var dst in gamestate.getFields())  // FIXME? this is slow
+                if (state.moves[i].length == 2)
                 {
-                    if (gamestate.isValidMove(src, dst)) {
-                        possibleMoves[src][dst] = true
+                    var src = state.moves[i][0]
+                    var dst = state.moves[i][1]
+                    if ( typeof src == "string" && possibleMoves[src] &&
+                         !segmentsUsed[gamestate.getField(src).getSegment()] &&
+                         typeof dst == "string" && possibleMoves[src][dst] )
+                    {
+                        segmentsUsed[gamestate.getField(src).getSegment()] = true
+                        moves.push([src,dst])
                     }
                 }
+            }
+        }
+
+        if (typeof state.selected == "string" && possibleMoves[state.selected])
+        {
+            selected = state.selected
+        }
+
+        if (typeof state.phase == "number" && typeof state.subphase == "number")
+        {
+            while (phase < state.phase || (phase == state.phase && subphase < state.subphase))
+            {
+                var old_phase = phase, old_subphase = subphase
+                obj.nextPhase()
+                if (old_phase == phase || old_subphase == subphase) break
             }
         }
     }
