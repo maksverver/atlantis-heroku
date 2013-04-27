@@ -20,14 +20,16 @@ var retrieve = function(id, callback)  /* callback(err, obj) */
         }
         else
         {
+            var err = null, res = null
             try
             {
-                callback(null, JSON.parse(data))
+                res = JSON.parse(data)
             }
-            catch (err)
+            catch (e)
             {
-                callback(err, null)
+                err = e
             }
+            callback(err, res)
         }
     })
 }

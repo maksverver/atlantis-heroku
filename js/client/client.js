@@ -278,7 +278,7 @@ function onMoveButton(i)
     {
         // Reset game state and move selection:
         gamestate.reset()
-        selection = MoveSelection()
+        selection = MoveSelection(gamestate)
     }
     else
     if (i == selection.getPhase())
@@ -439,7 +439,7 @@ function initialize()
     server.on('disconnected', function () { alert('Connection lost!') })
     server.on('game', function(state) {
         gamestate = GameState(state)
-        selection = new MoveSelection()
+        selection = new MoveSelection(gamestate)
         createBoardCanvas()
         setMyTurn(true)
         redraw()
@@ -449,14 +449,14 @@ function initialize()
     })
     server.on('selection', function(obj) {
         gamestate.reset()
-        selection = MoveSelection(obj)
+        selection = MoveSelection(gamestate, obj)
         updateMoveButtons()
         redraw()
     })
     server.on('turn', function(moves) {
-        gamestate.addTurn(moves)
         gamestate.reset()
-        selection = MoveSelection()
+        gamestate.addTurn(moves)
+        selection = MoveSelection(gamestate)
         setMyTurn(true)
         updateMoveButtons()
         redraw()

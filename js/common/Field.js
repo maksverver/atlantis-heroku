@@ -1,3 +1,8 @@
+if (typeof exports == 'object')
+{
+    var parseCoords = require("./Coords.js").parseCoords
+}
+
 //
 //  The Fields class represents a mutable game field.  Each field is part
 //  of some board segment, may contain some stones of a single player, and
@@ -13,105 +18,126 @@ function Field(id, segment) {
     var player  = -1
     var stones  =  0
 
-    return {
-        getId:      function() { return id },
-        getPlayer:  function() { return player },
-        getStones:  function() { return stones },
-        getSegment: function() { return segment },
-        getCoords:  function() { return parseCoords(id) },
-        isOpen:     function() { return state == 0 },
-        isClosed:   function() { return state != 0 },
-        isGrowing:  function() { return state == 1 },
-        isDead:     function() { return state == 2 },
+    function getId()        { return id }
+    function getPlayer()    { return player }
+    function getStones()    { return stones }
+    function getSegment()   { return segment }
+    function getCoords()    { return parseCoords(id) }
+    function isOpen()       { return state == 0 }
+    function isClosed()     { return state != 0 }
+    function isGrowing()    { return state == 1 }
+    function isDead()       { return state == 2 }
 
-        setPlayer: function(new_player)
-        {
-            if (stones > 0 || state > 0) player = new_player
-        },
-
-        setPlayerValue: function(new_player, value)
-        {
-            player = new_player
-            if (value > 0)  // stack of stones on open field
-            {
-                state  = 0
-                stones = value
-            }
-            else
-            if (value < 0)  // stones on growing field
-            {
-                state  = 1
-                stones = -value
-            }
-            else  /* value == 0 */  // dead field
-            {
-                state  = 2
-                stones = 0
-            }
-        },
-
-        removeStones: function(n)
-        {
-            if (n < 0) return 0
-            if (n < stones)
-            {
-                stones -= n
-            }
-            else  /* n >= stones */
-            {
-                n = stones
-                stones =  0
-                player = -1
-            }
-            return n
-        },
-
-        addPlayerStones: function(p, n) {
-            if (n <= 0) return
-            if (stones == 0)
-            {
-                player = p
-                stones = n
-            }
-            else
-            if (player == p)
-            {
-                stones += n
-            }
-            else
-            if (stones > n)
-            {
-                stones -= n
-            }
-            else
-            if (stones < n)
-            {
-                stones = n - stones
-                player = p
-            }
-            else  /* player != p && stones == n */
-            {
-                stones =  0
-                player = -1
-            }
-        },
-
-        explode: function(p) {
-            stones = 0
-            player = p
-            if (state < 2) ++state
-        },
-
-        toggleLiving: function(p) {
-            if (stones > 0)
-            {
-                state = (state == 1) ? 0 : 1
-            }
-            else
-            {
-                state = (state == 2) ? 0 : 2
-            }
-        }
-
+    function setPlayer(new_player)
+    {
+        if (stones > 0 || state > 0) player = new_player
     }
+
+    function setPlayerValue(new_player, value)
+    {
+        player = new_player
+        if (value > 0)  // stack of stones on open field
+        {
+            state  = 0
+            stones = value
+        }
+        else
+        if (value < 0)  // stones on growing field
+        {
+            state  = 1
+            stones = -value
+        }
+        else  /* value == 0 */  // dead field
+        {
+            state  = 2
+            stones = 0
+        }
+    }
+
+    function removeStones(n)
+    {
+        if (n < 0) return 0
+        if (n < stones)
+        {
+            stones -= n
+        }
+        else  /* n >= stones */
+        {
+            n = stones
+            stones =  0
+            player = -1
+        }
+        return n
+    }
+
+    function addPlayerStones(p, n)
+    {
+        if (n <= 0) return
+        if (stones == 0)
+        {
+            player = p
+            stones = n
+        }
+        else
+        if (player == p)
+        {
+            stones += n
+        }
+        else
+        if (stones > n)
+        {
+            stones -= n
+        }
+        else
+        if (stones < n)
+        {
+            stones = n - stones
+            player = p
+        }
+        else  /* player != p && stones == n */
+        {
+            stones =  0
+            player = -1
+        }
+    }
+
+    function explode(p)
+    {
+        stones = 0
+        player = p
+        if (state < 2) ++state
+    }
+
+    function toggleLiving(p) 
+    {
+        if (stones > 0)
+        {
+            state = (state == 1) ? 0 : 1
+        }
+        else
+        {
+            state = (state == 2) ? 0 : 2
+        }
+    }
+
+    return { getId:             getId,
+             getPlayer:         getPlayer,
+             getStones:         getStones,
+             getSegment:        getSegment,
+             getCoords:         getCoords,
+             isOpen:            isOpen,
+             isClosed:          isClosed,
+             isGrowing:         isGrowing,
+             isDead:            isDead,
+             setPlayer:         setPlayer,
+             setPlayerValue:    setPlayerValue,
+             removeStones:      removeStones,
+             addPlayerStones:   addPlayerStones,
+             explode:           explode,
+             toggleLiving:      toggleLiving }
+}
+
+if (typeof exports == 'object')
+{
+    exports.Field = Field
 }

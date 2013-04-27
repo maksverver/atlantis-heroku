@@ -1,7 +1,10 @@
 // Atlantis game server implementation
 
-var fs          = require('fs')
 var socket_io   = require('socket.io')
+var fs          = require('fs')
+
+var GameState     = require("../common/GameState").GameState
+var MoveSelection = require("../common/MoveSelection").MoveSelection
 
 var storage     = null  // game storage
 var clients     = {}  // game-id => list of clients connected to the game
@@ -37,12 +40,11 @@ function onConnection(client)
         if (game_id) return
 
         storage.retrieve(data['game'], function(err, game) {
-            if (err)
+            if (!game)
             {
                 client.emit('error-message', "Game not found!")
             }
             else
-            if (game)
             {
                 game_id = data['game']
                 client.emit('game', game)
@@ -52,14 +54,31 @@ function onConnection(client)
         })
     })
 
-    client.on('selection', function(data) {
+    client.on('selection', function(obj) {
 
-        // TODO: validate selection is sane?
-        for (var i in clients[game_id])
-        {
-            var c = clients[game_id][i]
-            if (c != client) c.emit('selection', data)
-        }
+        if (!game_id) return
+
+        // FIXME: should cache game state
+        storage.retrieve(game_id, function(err, game) {
+            console.log("err="+err)
+            console.log("game="+game)
+            if (!game)
+            {
+                client.emit('error-message', "Game not found!")
+            }
+            else
+            {
+                // Sanitize MoveSelection object:
+                obj = MoveSelection(GameState(game), obj).objectify()
+
+                // Send it to all other clients:
+                for (var i in clients[game_id])
+                {
+                    var cl = clients[game_id][i]
+                    if (cl != client) cl.emit('selection', obj)
+                }
+            }
+        })
     })
 
     client.on('turn', function(turn) {

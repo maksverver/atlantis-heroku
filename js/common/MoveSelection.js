@@ -1,144 +1,21 @@
 //
-// The MoveSelection class represents a partial set of moves to be executed
+// The MoveSelection class represents a (partial) set of moves to be executed
 // by the next player.
 //
 
-function MoveSelection(state)
+function MoveSelection(gamestate, initial)
 {
     var phase      = 1
     var subphase   = 0
     var selected   = null
-    var moves      = [ ]
+    var moves      = []
     var explosions = null
     var growing    = null
 
     var possibleMoves = {}
     var segmentsUsed  = {}
 
-    var obj = {
-
-        objectify: function() {
-            return { "phase":      phase,
-                     "selected":   selected,
-                     "subphase":   subphase,
-                     "moves":      moves }
-        },
-
-        getMoves:           function() { return moves },
-        getExplosions:      function() { return explosions },
-        getGrowing:         function() { return growing },
-        getSelectedField:   function() { return selected },
-        getPhase:           function() { return phase },
-
-        isSourceField: function(src) {
-            return possibleMoves[src] && !segmentsUsed[gamestate.getField(src).getSegment()]
-        },
-
-        isDestinationField: function(dst) {
-            return selected && possibleMoves[selected][dst]
-        },
-
-        onMouseDown: function(id)
-        {
-            if (phase != 1) return false
-
-            if (id == null)
-            {
-                if (selected != null)
-                {
-                    selected = null
-                    return true
-                }
-                return false
-            }
-            if (selected == null)
-            {
-                for (var i in moves)
-                {
-                    if (moves[i][0] == id)
-                    {
-                        delete segmentsUsed[gamestate.getField(id).getSegment()]
-                        moves.splice(i, 1)
-                        break
-                    }
-                }
-                if (this.isSourceField(id))
-                {
-                    selected = id
-                    return true
-                }
-            }
-            else
-            if (selected == id)
-            {
-                selected = null
-                return true
-            }
-            else
-            {
-                if (this.isDestinationField(id))
-                {
-                    segmentsUsed[gamestate.getField(selected).getSegment()] = true
-                    moves.push([selected,id])
-                    selected = null
-                }
-                else
-                {
-                    selected = this.isSourceField(id) ? id : null
-                }
-                return true
-            }
-            return false
-        },
-
-        onMouseUp: function(id)
-        {
-            return selected && id != selected && this.onMouseDown(id)
-        },
-
-        nextPhase: function()
-        {
-            var player = gamestate.getNextPlayer()
-
-            switch (phase)
-            {
-            case 1:  // end movement phase
-                for (var move in moves)
-                {
-                    move = moves[move]
-                    gamestate.doMove(move[0], move[1])
-                }
-                selected      = null
-                phase         = 2
-                subphase      = 0
-                // NOTE: falls through!
-
-            case 2:  // execute explosions!
-                for (var i in explosions)
-                {
-                    gamestate.doExplosion(player, explosions[i])
-                    subphase++
-                }
-                explosions = gamestate.findExplosions(player)
-                if (explosions.length == 0)
-                {
-                    growing = gamestate.findGrowing(player)
-                    phase = 3
-                    subphase = 0
-                }
-                break
-
-            case 3:  // growth
-                for (var i in growing)
-                {
-                    gamestate.getField(growing[i]).addPlayerStones(player, 1)
-                }
-                phase = 4
-                break
-            }
-        }
-    }
-
+    // Initialize list of possible moves:
     var player = gamestate.getNextPlayer()
     for (var src in gamestate.getFields())
     {
@@ -148,7 +25,8 @@ function MoveSelection(state)
             possibleMoves[src] = {}
             for (var dst in gamestate.getFields())  // FIXME? this is slow
             {
-                if (gamestate.isValidMove(src, dst)) {
+                if (gamestate.isValidMove(src, dst))
+                {
                     possibleMoves[src][dst] = true
                 }
             }
@@ -156,19 +34,19 @@ function MoveSelection(state)
     }
 
     // Parse the state object as returned by objectify(), if possible:
-    if (state instanceof Object)
+    if (initial instanceof Object)
     {
         /* Note that this parsing code is intended to be robust: it will not
            crash if an invalid state object is passed in, and it will not accept
            invalid moves. */
-        if (state.moves instanceof Array)
+        if (initial.moves instanceof Array)
         {
-            for (var i = 0; i < state.moves.length; ++i)
+            for (var i = 0; i < initial.moves.length; ++i)
             {
-                if (state.moves[i].length == 2)
+                if (initial.moves[i].length == 2)
                 {
-                    var src = state.moves[i][0]
-                    var dst = state.moves[i][1]
+                    var src = initial.moves[i][0]
+                    var dst = initial.moves[i][1]
                     if ( typeof src == "string" && possibleMoves[src] &&
                          !segmentsUsed[gamestate.getField(src).getSegment()] &&
                          typeof dst == "string" && possibleMoves[src][dst] )
@@ -180,21 +58,156 @@ function MoveSelection(state)
             }
         }
 
-        if (typeof state.selected == "string" && possibleMoves[state.selected])
+        if (typeof initial.selected == "string" && possibleMoves[initial.selected])
         {
-            selected = state.selected
+            selected = initial.selected
         }
 
-        if (typeof state.phase == "number" && typeof state.subphase == "number")
+        if (typeof initial.phase == "number" && typeof initial.subphase == "number")
         {
-            while (phase < state.phase || (phase == state.phase && subphase < state.subphase))
-            {
-                var old_phase = phase, old_subphase = subphase
-                obj.nextPhase()
-                if (old_phase == phase || old_subphase == subphase) break
-            }
+            while ( (phase < initial.phase || (phase == initial.phase && subphase < initial.subphase) ) &&
+                    nextPhase() ) { }
         }
     }
 
-    return obj
+    function getMoves()         { return moves }
+    function getExplosions()    { return explosions }
+    function getGrowing()       { return growing }
+    function getSelectedField() { return selected }
+    function getPhase()         { return phase }
+
+    function isSourceField(src)
+    {
+        return possibleMoves[src] && !segmentsUsed[gamestate.getField(src).getSegment()]
+    }
+
+    function isDestinationField(dst)
+    {
+        return selected && possibleMoves[selected][dst]
+    }
+
+    function onMouseDown(id)
+    {
+        if (phase != 1) return false
+
+        if (id == null)
+        {
+            if (selected != null)
+            {
+                selected = null
+                return true
+            }
+            return false
+        }
+        if (selected == null)
+        {
+            for (var i in moves)
+            {
+                if (moves[i][0] == id)
+                {
+                    delete segmentsUsed[gamestate.getField(id).getSegment()]
+                    moves.splice(i, 1)
+                    break
+                }
+            }
+            if (this.isSourceField(id))
+            {
+                selected = id
+                return true
+            }
+        }
+        else
+        if (selected == id)
+        {
+            selected = null
+            return true
+        }
+        else
+        {
+            if (this.isDestinationField(id))
+            {
+                segmentsUsed[gamestate.getField(selected).getSegment()] = true
+                moves.push([selected,id])
+                selected = null
+            }
+            else
+            {
+                selected = this.isSourceField(id) ? id : null
+            }
+            return true
+        }
+        return false
+    }
+
+    function onMouseUp(id)
+    {
+        return selected && id != selected && this.onMouseDown(id)
+    }
+
+    function nextPhase()
+    {
+        switch (phase)
+        {
+        case 1:  // end movement phase
+            for (var move in moves)
+            {
+                move = moves[move]
+                gamestate.doMove(move[0], move[1])
+            }
+            selected = null
+            phase    = 2
+            subphase = 0
+            // NOTE: falls through!
+
+        case 2:  // explosions
+            for (var i in explosions)
+            {
+                gamestate.doExplosion(player, explosions[i])
+                subphase++
+            }
+            explosions = gamestate.findExplosions(player)
+            if (explosions.length == 0)
+            {
+                growing  = gamestate.findGrowing(player)
+                phase    = 3
+                subphase = 0
+            }
+            return true
+
+        case 3:  // growth
+            for (var i in growing)
+            {
+                gamestate.getField(growing[i]).addPlayerStones(player, 1)
+            }
+            phase = 4
+            subphase = 0
+            return true
+        }
+        return false
+    }
+
+    function objectify()
+    {
+        return { "phase":      phase,
+                 "selected":   selected,
+                 "subphase":   subphase,
+                 "moves":      moves }
+    }
+
+    return { getMoves:           getMoves,
+             getExplosions:      getExplosions,
+             getGrowing:         getGrowing,
+             getSelectedField:   getSelectedField,
+             getPhase:           getPhase,
+             isSourceField:      isSourceField,
+             isDestinationField: isDestinationField,
+             onMouseDown:        onMouseDown,
+             onMouseUp:          onMouseUp,
+             nextPhase:          nextPhase,
+             objectify:          objectify }
+}
+
+if (typeof exports == 'object')
+{
+    exports.MoveSelection = MoveSelection
 }

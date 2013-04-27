@@ -1,6 +1,7 @@
   - chat?
-  - revise transcript format
+  - revise transcript format to allow commentary?
   - make code formatting/identifier naming consistent across sources
+  - optimize generation of possible moves in MoveSelection
 
 HTML:
   - make reset button go back only one (sub)phase or move
@@ -16,5 +17,8 @@ Server:
     (Maybe rename some messages to be clearer.)
   - verification of turns
   - keep active games in memory
+
+Setup:
+  - should have a "back" button!
 
 Deploy on heroku/flatpc?

@@ -1,5 +1,5 @@
-DX = [ +1, +1,  0, -1, -1,  0 ]
-DY = [  0, +1, +1,  0, -1, -1 ]
+var DX = [ +1, +1,  0, -1, -1,  0 ]
+var DY = [  0, +1, +1,  0, -1, -1 ]
 
 //
 //  The Coords class represents an (immutable) pair of hexagonal grid coordinates.
@@ -23,49 +23,62 @@ function decodeX(s)
     return x - 1
 }
 
-function Coords(x, y) {
-    return {
-
-        toString: function()
-        {
-            return encodeX(x) + (y + 1)
-        },
-
-        getNeighbour: function(dir)
-        {
-            return Coords(x + DX[dir], y + DY[dir])
-        },
-
-        getDirectionTo: function(dest)
-        {
-            var dx = dest.getX() - x
-            var dy = dest.getY() - y
-            if (dx >  0 && dy ==  0) return 0
-            if (dx >  0 && dy == dx) return 1
-            if (dx == 0 && dy >   0) return 2
-            if (dx <  0 && dy ==  0) return 3
-            if (dx <  0 && dy == dx) return 4
-            if (dx == 0 && dy <   0) return 5
-            return -1
-        },
-
-        getDistanceTo: function(dest)
-        {
-            return Math.max(Math.abs(dest.getX() - x), Math.abs(dest.getY() - y))
-        },
-
-        getX: function() { return x },
-        getY: function() { return y },
-
-        // Conversion to Carthesian coordinates:
-        getCX: function() { return 1.5*(x - y) },
-        getCY: function() { return Math.sqrt(3)/2*(x + y) },
+function Coords(x, y)
+{
+    function toString()
+    {
+        return encodeX(x) + (y + 1)
     }
+
+    function getNeighbour(dir)
+    {
+        return Coords(x + DX[dir], y + DY[dir])
+    }
+
+    function getDirectionTo(dest)
+    {
+        var dx = dest.getX() - x
+        var dy = dest.getY() - y
+        if (dx >  0 && dy ==  0) return 0
+        if (dx >  0 && dy == dx) return 1
+        if (dx == 0 && dy >   0) return 2
+        if (dx <  0 && dy ==  0) return 3
+        if (dx <  0 && dy == dx) return 4
+        if (dx == 0 && dy <   0) return 5
+        return -1
+    }
+
+    function getDistanceTo(dest)
+    {
+        return Math.max(Math.abs(dest.getX() - x), Math.abs(dest.getY() - y))
+    }
+
+    function getX() { return x }
+    function getY() { return y }
+
+    // Conversion to Carthesian coordinates:
+    function getCX() { return 1.5*(x - y) }
+    function getCY() { return Math.sqrt(3)/2*(x + y) }
+
+    return {
+        toString:       toString,
+        getNeighbour:   getNeighbour,
+        getDirectionTo: getDirectionTo,
+        getDistanceTo:  getDistanceTo,
+        getX:           getX,
+        getY:           getY,
+        getCX:          getCX,
+        getCY:          getCY }
 }
 
 function parseCoords(descr)
 {
-    var m = descr.match(/(-?[a-z]*)(0|-?[1-9][0-9]*)/)
+    var m = descr.match(/^(-?[a-z]*)(0|-?[1-9][0-9]*)$/)
     if (!m) return null
-    return Coords( decodeX(m[1]), parseInt(m[2], 10) - 1 )
+    return Coords(decodeX(m[1]), parseInt(m[2], 10) - 1)
+}
+
+if (typeof exports == 'object')
+{
+    exports.parseCoords = parseCoords
 }
