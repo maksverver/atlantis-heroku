@@ -1,8 +1,5 @@
-if (typeof exports == 'object')
-{
-    Field = require("./Field.js").Field
-    parseCoords = require("./Coords.js").parseCoords
-}
+Field  = require("./Field.js")
+Coords = require("./Coords.js")
 
 function deepCopy(obj)
 {
@@ -104,8 +101,8 @@ function GameState(initial)
 
     function isValidMove(src, dst)
     {
-        var src = parseCoords(src)
-        var dst = parseCoords(dst)
+        var src = Coords.parse(src)
+        var dst = Coords.parse(dst)
         if (!src || !dst) return false
 
         var field = fields[src]
@@ -135,7 +132,7 @@ function GameState(initial)
 
     function countNeighbours(id)
     {
-        var coords = parseCoords(id)
+        var coords = Coords.parse(id)
         var result = 0
         for (var dir = 0; dir < 6; ++dir)
         {
@@ -176,8 +173,8 @@ function GameState(initial)
     // NOTE: blindly assumes the given move is valid!
     function doMove(src, dst)
     {
-        var src     = parseCoords(src)
-        var dst     = parseCoords(dst)
+        var src     = Coords.parse(src)
+        var dst     = Coords.parse(dst)
         var dir     = src.getDirectionTo(dst)
         var dist    = src.getDistanceTo(dst)
         var field   = fields[src]
@@ -267,7 +264,4 @@ function GameState(initial)
              objectify:         objectify }
 }
 
-if (typeof exports == 'object')
-{
-    exports.GameState = GameState
-}
+module.exports = GameState

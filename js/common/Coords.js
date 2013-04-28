@@ -77,7 +77,7 @@ function Coords(x, y)
         getCY:          getCY }
 }
 
-function parseCoords(descr)
+function parse(descr)
 {
     switch (typeof descr)
     {
@@ -93,8 +93,5 @@ function parseCoords(descr)
     }
 }
 
-if (typeof exports == 'object')
-{
-    exports.parseCoords = parseCoords
-    exports.Coords      = Coords
-}
+Coords.parse = parse
+module.exports = Coords

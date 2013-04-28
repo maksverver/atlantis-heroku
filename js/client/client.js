@@ -1,6 +1,7 @@
-var CustomEventSource = require("./CustomEventSource.js").CustomEventSource
-var GameState         = require("../common/GameState.js").GameState
-var MoveSelection     = require("../common/MoveSelection.js").MoveSelection
+var CustomEventSource = require("./CustomEventSource.js")
+var GameState         = require("../common/GameState.js")
+var MoveSelection     = require("../common/MoveSelection.js")
+var Coords            = require("../common/Coords.js")
 
 // Global variables
 var gamestate            = null
@@ -37,7 +38,7 @@ function getMouseOverField(event)
     // Search for clicked field:
     for (var id in gamestate.getFields())
     {
-        var coords = parseCoords(id)
+        var coords = Coords.parse(id)
         makeFieldPath(coords.getCX(), coords.getCY())
         if (board_canvas_context.isPointInPath(event.offsetX, event.offsetY)) return id
     }
@@ -66,7 +67,7 @@ function drawFieldHighlight(id, fillStyle, context, radius)
     context.save()
     context.globalAlpha = 0.5
     context.fillStyle = fillStyle
-    var coords = parseCoords(id)
+    var coords = Coords.parse(id)
     var cx = coords.getCX()
     var cy = coords.getCY()
     context.beginPath()
@@ -102,7 +103,7 @@ function redraw()
     for (var id in fields)
     {
         var field = fields[id]
-        var coords = parseCoords(id)
+        var coords = Coords.parse(id)
         var cx = coords.getCX()
         var cy = coords.getCY()
 
@@ -144,7 +145,7 @@ function redraw()
     {
         var field = fields[id]
         if (field.isClosed()) continue
-        var coords = parseCoords(id)
+        var coords = Coords.parse(id)
         var segment = field.getSegment()
         var cx = coords.getCX()
         var cy = coords.getCY()
@@ -175,8 +176,8 @@ function redraw()
         context.fillStyle = 'blue'
         for (var i in moves) 
         {
-            var src = parseCoords(moves[i][0])
-            var dst = parseCoords(moves[i][1])
+            var src = Coords.parse(moves[i][0])
+            var dst = Coords.parse(moves[i][1])
             var x1 = src.getCX(), y1 = src.getCY()
             var x2 = dst.getCX(), y2 = dst.getCY()
             var dx = x2 - x1, dy = y2 - y1, len = Math.sqrt(dx*dx + dy*dy)
@@ -206,7 +207,7 @@ function redraw()
         context.fillStyle = 'red'
         for (var i in explosions)
         {
-            var coords = parseCoords(explosions[i])
+            var coords = Coords.parse(explosions[i])
             var cx = coords.getCX()
             var cy = coords.getCY()
             context.beginPath()
@@ -249,7 +250,7 @@ function redraw()
     for (var id in fields)
     {
         var field = fields[id]
-        var coords = parseCoords(id)
+        var coords = Coords.parse(id)
         var n = field.getStones()
         for (var i = 0; i < n; ++i)
         {
@@ -508,7 +509,7 @@ function createBoardCanvas()
     var bbox = [Infinity,Infinity,-Infinity,-Infinity]  // bounding box (x1,y1,x2,y2)
     for (var id in gamestate.getFields())
     {
-        var coords = parseCoords(id)
+        var coords = Coords.parse(id)
         var cx = coords.getCX(), cy = coords.getCY()
         bbox[0] = Math.min(bbox[0], cx)
         bbox[1] = Math.min(bbox[1], cy)

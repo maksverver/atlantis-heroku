@@ -53,4 +53,4 @@ function CustomEventSource()
              removeHandler: removeHandler }
 }
 
-exports.CustomEventSource = CustomEventSource
+module.exports = CustomEventSource

@@ -1,7 +1,4 @@
-if (typeof exports == 'object')
-{
-    var parseCoords = require("./Coords.js").parseCoords
-}
+var Coords = require("./Coords.js")
 
 //
 //  The Fields class represents a mutable game field.  Each field is part
@@ -13,7 +10,8 @@ if (typeof exports == 'object')
 //  if it contains any stones, or if it is growing.
 //
 
-function Field(id, segment) {
+function Field(id, segment)
+{
     var state   =  0  // 0: open, 1: growing, 2: dead
     var player  = -1
     var stones  =  0
@@ -22,7 +20,7 @@ function Field(id, segment) {
     function getPlayer()    { return player }
     function getStones()    { return stones }
     function getSegment()   { return segment }
-    function getCoords()    { return parseCoords(id) }
+    function getCoords()    { return Coords.parse(id) }
     function isOpen()       { return state == 0 }
     function isClosed()     { return state != 0 }
     function isGrowing()    { return state == 1 }
@@ -137,7 +135,4 @@ function Field(id, segment) {
              toggleLiving:      toggleLiving }
 }
 
-if (typeof exports == 'object')
-{
-    exports.Field = Field
-}
+module.exports = Field

@@ -209,7 +209,4 @@ function MoveSelection(gamestate, initial)
              objectify:          objectify }
 }
 
-if (typeof exports == 'object')
-{
-    exports.MoveSelection = MoveSelection
-}
+module.exports = MoveSelection
