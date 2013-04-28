@@ -90,41 +90,45 @@ function MoveSelection(gamestate, initial)
         return selected && possibleMoves[selected][dst]
     }
 
+    // Returns 0 for no change, 1 if `selection` changed only, or 2 otherwise
     function onMouseDown(id)
     {
-        if (phase != 1) return false
+        if (phase != 1) return 0
 
         if (id == null)
         {
             if (selected != null)
             {
                 selected = null
-                return true
+                return 1
             }
-            return false
+            return 0
         }
         if (selected == null)
         {
-            for (var i in moves)
+            if (possibleMoves[id])
             {
-                if (moves[i][0] == id)
+                var segment = gamestate.getField(id).getSegment()
+                if (segmentsUsed[segment])
                 {
-                    delete segmentsUsed[gamestate.getField(id).getSegment()]
-                    moves.splice(i, 1)
-                    break
+                    for (var i in moves)
+                    {
+                        if (gamestate.getField(moves[i][0]).getSegment() == segment)
+                        {
+                            moves.splice(i, 1)
+                        }
+                    }
+                    delete segmentsUsed[segment]
                 }
-            }
-            if (this.isSourceField(id))
-            {
                 selected = id
-                return true
+                return 2
             }
         }
         else
         if (selected == id)
         {
             selected = null
-            return true
+            return 1
         }
         else
         {
@@ -133,14 +137,15 @@ function MoveSelection(gamestate, initial)
                 segmentsUsed[gamestate.getField(selected).getSegment()] = true
                 moves.push([selected,id])
                 selected = null
+                return 2
             }
             else
             {
                 selected = this.isSourceField(id) ? id : null
+                return 1
             }
-            return true
         }
-        return false
+        return 0
     }
 
     function onMouseUp(id)
@@ -194,7 +199,6 @@ function MoveSelection(gamestate, initial)
     {
         return { "phase":      phase,
                  "subphase":   subphase,
-                 "selected":   selected,
                  "moves":      moves }
     }
 

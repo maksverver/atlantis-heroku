@@ -130,7 +130,7 @@ function onConnection(client)
                 var clnts = clients[game_id]
                 for (var i = 0; i < clnts.length; ++i)
                 {
-                    if (clnts[i]) clnts[i].emit('selection', obj)
+                    if (clnts[i] != client) clnts[i].emit('selection', obj)
                 }
             }
         })
@@ -148,7 +148,7 @@ function onConnection(client)
             else
             {
                 // Sanitize turn:
-                turn = MoveSelection(GameState(game), {
+                var turn = MoveSelection(GameState(game), {
                     phase:      1,
                     subphase:   0,
                     selected:   null,

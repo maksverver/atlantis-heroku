@@ -303,28 +303,28 @@ function onMoveButton(i)
     }
     else
     {
-        moveSelectionChanged()
+        server.emit('selection', selection.objectify())
+        redraw()
     }
     updateMoveButtons()
 }
 
-function moveSelectionChanged()
-{
-    if (selection)
-    {
-        server.emit('selection', selection.objectify())
-    }
-    redraw()
-}
-
 function moveSelectionMouseDownHandler(field)
 {
-    if (selection.onMouseDown(field)) moveSelectionChanged()
+    switch (selection.onMouseDown(field))
+    {
+    case 2: server.emit('selection', selection.objectify())
+    case 1: redraw()
+    }
 }
 
 function moveSelectionMouseUpHandler(field)
 {
-    if (selection.onMouseUp(field)) moveSelectionChanged()
+    switch (selection.onMouseUp(field))
+    {
+    case 2: server.emit('selection', selection.objectify())
+    case 1: redraw()
+    }
 }
 
 function setMyTurn(new_value)
@@ -399,8 +399,8 @@ function parseHash(hash)
 
 function formatHash(obj)
 {
-    hash = "#"
-    for (key in obj)
+    var hash = "#"
+    for (var key in obj)
     {
         if (hash != "#") hash += "&"
         hash += encodeURIComponent(key) + '=' + encodeURIComponent(obj[key])
