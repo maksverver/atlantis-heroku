@@ -1,20 +1,8 @@
+Milestone release:
   - show game list on index page (with a link to board setup)
-  - chat?
-  - revise transcript format to allow commentary?
-  - make code formatting/identifier naming consistent across sources
-  - separate player URLs!
-
-HTML:
-  - make reset button go back only one (sub)phase or move
-  - server should validate turns! (and moveselections?)
-  - separate player urls
-  - server should calculate stable regions & skip players without turns
-    (careful: if nobody can move, the game is over!)
-  - option to show field coordinates
-
-Server:
-  - Document client/server interface.
-    (Maybe rename some messages to be clearer.)
+  - provide separate player URLs
+  - allow player to specify their names
+  - show player scores
   - server should store game state, not just objectified version.
     Proposal:
         {
@@ -23,7 +11,20 @@ Server:
             keys:  [[player keys]]
         }
 
-Setup:
-  - should have a "back" button!
+  - chat support / revise transcript format to allow commentary?
+  - server should skip players with no moves
+    (careful: if nobody can move, the game is over!)
 
-Deploy on heroku/flatpc?
+To deploy on Heroku:
+  - implement PostgreSQL storage backend
+
+HTML:
+  - make reset button go back only one (sub)phase or move
+  - server should validate turns! (and moveselections?)
+  - option to show field coordinates
+
+Server:
+  (Nothing else for now.)
+
+Setup mode:
+  - should have a "back" button!
