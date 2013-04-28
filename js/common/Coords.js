@@ -96,4 +96,5 @@ function parseCoords(descr)
 if (typeof exports == 'object')
 {
     exports.parseCoords = parseCoords
+    exports.Coords      = Coords
 }

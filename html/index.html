@@ -4,14 +4,14 @@
 <link rel="stylesheet" type="text/css" href="style/game.css">
 <title>Atlantis</title>
 </head>
-<body onload="initialize()" onresize="resize()">
+<body onload="client.initialize()" onresize="client.resize()">
 
 <div id="LeftColumn">
   <div id="Buttons"><!--
- --><button class="Icon" id="MoveButton0" title="Reset"   onclick="onMoveButton(0)" disabled></button><!--
- --><button class="Icon" id="MoveButton1" title="Move"    onclick="onMoveButton(1)" disabled></button><!--
- --><button class="Icon" id="MoveButton2" title="Explode" onclick="onMoveButton(2)" disabled></button><!--
- --><button class="Icon" id="MoveButton3" title="Grow"    onclick="onMoveButton(3)" disabled></button><!--
+ --><button class="Icon" id="MoveButton0" title="Reset"   onclick="client.onMoveButton(0)" disabled></button><!--
+ --><button class="Icon" id="MoveButton1" title="Move"    onclick="client.onMoveButton(1)" disabled></button><!--
+ --><button class="Icon" id="MoveButton2" title="Explode" onclick="client.onMoveButton(2)" disabled></button><!--
+ --><button class="Icon" id="MoveButton3" title="Grow"    onclick="client.onMoveButton(3)" disabled></button><!--
 --></div>
   <div id="BoardContainer"></div>
 </div>
@@ -23,7 +23,7 @@
         <tr>
         <th align="left">Shape</th>
         <td align="right">
-            <select id="BoardShape" onchange="onBoardShapeChanged()">
+            <select id="BoardShape" onchange="setup.onBoardShapeChanged()">
             <option value="triangle">Triangle</option>
             <option value="hexagon">Hexagon</option>
             <option value="rhombus">Rhombus</option>
@@ -33,7 +33,7 @@
         <tr>
         <th align="left">Size</th>
         <td align="right">
-            <select id="BoardSize" onchange="onBoardShapeChanged()">
+            <select id="BoardSize" onchange="setup.onBoardShapeChanged()">
             <option value="1">1</option>
             <option value="2">2</option>
             <option value="3" selected>3</option>
@@ -46,12 +46,12 @@
             </select>
         </td>
         </tr>
-        <tr><th colspan="2"><input type="button" value="Continue..." onclick="onBoardSelected()"></th></tr>
+        <tr><th colspan="2"><input type="button" value="Continue..." onclick="setup.onBoardShapeSelected()"></th></tr>
       </table>
     </div>
     <div id="CustomizeBoard">
       <p>Click the board segments you want to remove.</p>
-      <input type="button" value="Continue..." onclick="onBoardCustomized()">
+      <input type="button" value="Continue..." onclick="setup.onBoardCustomized()">
     </div>
     <div id="CustomizePlayer">
       <p>Place initial stones for players by selecting a color and then clicking fields on the board.</p>
@@ -67,16 +67,14 @@
      --><input class="ColorButton" id="Color8" name="Color" type="radio" value="purple"   ><label class="ColorButton" for="Color8" style="background:purple"   ></label><!--
      --><input class="ColorButton" id="Color9" name="Color" type="radio" value="fuchsia"  ><label class="ColorButton" for="Color9" style="background:fuchsia"  ></label><!--
      --><input class="ColorButton" id="Color0" name="Color" type="radio" value="white" selected><label class="WhiteColorButton" for="Color0"></label></p>
-     <p><input type="button" value="Continue..." onclick="onStonesPlaced()"></p>
+     <p><input type="button" value="Continue..." onclick="setup.onStonesPlaced()"></p>
   </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>
-<script src="js/common/Coords.js"></script>
-<script src="js/common/Field.js"></script>
-<script src="js/common/GameState.js"></script>
-<script src="js/common/MoveSelection.js"></script>
-<script src="js/client/EventSource.js"></script>
-<script src="js/client/setup.js"></script>
-<script src="js/client/client.js"></script>
+<script src="require.js"></script>
+<script>
+var client = require('./js/client/client.js')
+var setup  = require('./js/client/setup.js')
+</script>
 </body>
 </html>

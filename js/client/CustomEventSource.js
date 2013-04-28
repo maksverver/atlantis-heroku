@@ -1,4 +1,4 @@
-function EventSource()
+function CustomEventSource()
 {
     var handlers = {}
 
@@ -52,3 +52,5 @@ function EventSource()
              addHandler:    addHandler,
              removeHandler: removeHandler }
 }
+
+exports.CustomEventSource = CustomEventSource

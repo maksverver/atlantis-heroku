@@ -1,12 +1,20 @@
+var CustomEventSource = require("./CustomEventSource.js").CustomEventSource
+var GameState         = require("../common/GameState.js").GameState
+var MoveSelection     = require("../common/MoveSelection.js").MoveSelection
+
 // Global variables
 var gamestate            = null
 var selection            = null
 var board_canvas         = null
 var board_canvas_context = null
 var server               = null
-var board_events         = EventSource()
-var mouse_events         = EventSource()
+var board_events         = CustomEventSource()
+var mouse_events         = CustomEventSource()
 var my_turn              = false
+
+function getGameState()                 { return gamestate }
+function getBoardEvents()               { return board_events }
+function setGameState(new_gamestate)    { gamestate = new_gamestate }
 
 function fixEventOffset(event, element)
 {
@@ -473,7 +481,9 @@ function initialize()
         if (connected++) return
         if (!params['game'])
         {
-            setup()
+            require('./setup.js').setup(function(){
+                server.emit('create', gamestate.objectify())
+            })
         }
         else
         {
@@ -534,3 +544,12 @@ function createBoardCanvas()
     board_canvas_context.scale(scale, -scale)
     board_canvas_context.translate(-bbox[0], -bbox[1])
 }
+
+exports.getGameState      = getGameState
+exports.getBoardEvents    = getBoardEvents
+exports.setGameState      = setGameState
+exports.onMoveButton      = onMoveButton
+exports.redraw            = redraw
+exports.resize            = resize
+exports.initialize        = initialize
+exports.createBoardCanvas = createBoardCanvas

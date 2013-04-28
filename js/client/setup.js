@@ -2,8 +2,15 @@
 //  Implements game setup functionality.
 //
 
-function setup()
+var Coords    = require("../common/Coords.js").Coords
+var GameState = require("../common/GameState.js").GameState
+var client    = require("./client.js")
+
+var onSetupComplete = null
+
+function setup(callback)
 {
+    onSetupComplete = callback
     document.getElementById('SelectBoard').style.display = 'block'
     onBoardShapeChanged()
 }
@@ -30,15 +37,16 @@ function onBoardShapeChanged()
             segments.push(segment)
         }
     }
-    gamestate = GameState({"segments":segments})
-    createBoardCanvas()
-    redraw()
+    client.setGameState(GameState({"segments":segments}))
+    client.createBoardCanvas()
+    client.redraw()
 }
 
 function toggleSegment(field)
 {
     if (field)
     {
+        var gamestate = client.getGameState()
         var segment = gamestate.getField(field).getSegment()
         var fields = gamestate.getFields()
         for (var id in fields)
@@ -48,23 +56,25 @@ function toggleSegment(field)
                 fields[id].toggleLiving()
             }
         }
-        redraw()
+        client.redraw()
     }
 }
 
-function onBoardSelected()
+function onBoardShapeSelected()
 {
     document.getElementById('SelectBoard').style.display = 'none'
     document.getElementById('CustomizeBoard').style.display = 'block'
-    board_events.addHandler('mousedown', toggleSegment)
+    client.getBoardEvents().addHandler('mousedown', toggleSegment)
 }
 
 function addPlayerStone(field_id)
 {
+    var gamestate = client.getGameState()
+
     if (!field_id) return
     field = gamestate.getField(field_id)
     if (!field.isOpen()) return
-    
+
     var color = null
     for (var i = 0; ; ++i)
     {
@@ -121,7 +131,7 @@ function addPlayerStone(field_id)
             }
         }
     }
-    redraw()
+    client.redraw()
 
     // Assign player indices to labels
     for (var i = 0; ; ++i)
@@ -147,6 +157,7 @@ function addPlayerStone(field_id)
 function onBoardCustomized()
 {
     // Remove dead fields/segments:
+    var gamestate = client.getGameState()
     var old_segments = gamestate.getSegments()
     var new_segments = []
     for (var i = 0; i < old_segments.length; ++i)
@@ -168,22 +179,29 @@ function onBoardCustomized()
     }
     document.getElementById('CustomizeBoard').style.display = 'none'
     document.getElementById('CustomizePlayer').style.display = 'block'
-    board_events.removeHandler('mousedown', toggleSegment)
-    board_events.addHandler('mousedown', addPlayerStone)
-    gamestate = GameState({'segments':new_segments, "players":[]})
-    createBoardCanvas()
-    redraw()
+    client.getBoardEvents().removeHandler('mousedown', toggleSegment)
+    client.getBoardEvents().addHandler('mousedown', addPlayerStone)
+    client.setGameState(GameState({'segments':new_segments, "players":[]}))
+    client.createBoardCanvas()
+    client.redraw()
 }
 
 function onStonesPlaced()
 {
+    var gamestate = client.getGameState()
     if (gamestate.getPlayers().length < 2)
     {
         alert("Place some stones first! (Minimum of two players required.)")
         return
     }
-    board_events.removeHandler('mousedown', addPlayerStone)
+    client.getBoardEvents().removeHandler('mousedown', addPlayerStone)
     document.getElementById('CustomizePlayer').style.display = 'none'
     gamestate.storeInitialState()
-    server.emit('create', gamestate.objectify())
+    onSetupComplete()
 }
+
+exports.setup                 = setup
+exports.onBoardShapeChanged   = onBoardShapeChanged
+exports.onBoardShapeSelected  = onBoardShapeSelected
+exports.onBoardCustomized     = onBoardCustomized
+exports.onStonesPlaced        = onStonesPlaced

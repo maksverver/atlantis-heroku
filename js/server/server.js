@@ -3,8 +3,8 @@
 var socket_io   = require('socket.io')
 var fs          = require('fs')
 
-var GameState     = require("../common/GameState").GameState
-var MoveSelection = require("../common/MoveSelection").MoveSelection
+var GameState     = require("../common/GameState.js").GameState
+var MoveSelection = require("../common/MoveSelection.js").MoveSelection
 
 var storage     = null  // game storage
 var clients     = {}  // game-id => list of clients connected to the game
