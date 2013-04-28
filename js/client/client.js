@@ -473,7 +473,7 @@ function initialize()
     server.on('created', function(game_id) {
         params['game'] = game_id
         document.location.hash = formatHash(params)
-        server.emit('join', {'game': game_id})
+        server.emit('join', game_id)
     })
 
     var connected = 0
@@ -488,7 +488,7 @@ function initialize()
         }
         else
         {
-            server.emit('join', {'game': params['game']})
+            server.emit('join', params['game'])
         }
     })
 }

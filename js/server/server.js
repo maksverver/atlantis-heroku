@@ -7,7 +7,60 @@ var GameState     = require("../common/GameState.js")
 var MoveSelection = require("../common/MoveSelection.js")
 
 var storage     = null  // game storage
-var clients     = {}  // game-id => list of clients connected to the game
+var clients     = {}    // game-id => list of clients connected to each game
+var games       = {}    // game-id => game object
+
+function removeClient(game_id, client)
+{
+    var clnts = clients[game_id]
+    for (var i = 0; i < clnts.length; ++i)
+    {
+        if (clnts[i] === client)
+        {
+            clnts.splice(i--, 1)
+        }
+    }
+    if (clnts.length == 0)
+    {
+        delete games[id]
+        delete clients[id]
+        console.log("Game " + game_id + " released.")
+    }
+}
+
+function retrieveGame(game_id, new_client, callback)
+{
+    if (games[game_id])
+    {
+        if (new_client) clients[game_id].push(new_client)
+        callback(null, games[game_id])
+        return
+    }
+
+    /* FIXME: there is sort of a race condition here. Multiple clients
+              might call retrieveGame() at the same time! */
+
+    storage.retrieve(game_id, function(err, game) {
+
+        if (games[game_id])  // handle race-condition
+        {
+            if (new_client) clients[game_id].push(new_client)
+            callback(null, games[game_id])
+        } 
+        else
+        {
+            if (game)
+            {
+                console.log("Game " + game_id + " cached.")
+                games[game_id] = game
+                clients[game_id] = []
+                if (new_client) clients[game_id].push(new_client)
+            }
+            callback(err, game)
+        }
+    })
+
+}
 
 function onConnection(client)
 {
@@ -35,21 +88,24 @@ function onConnection(client)
         })
     })
 
-    client.on('join', function (data) {
+    client.on('join', function (new_game_id) {
+        if (typeof new_game_id != "string") return
 
-        if (game_id) return
-
-        storage.retrieve(data['game'], function(err, game) {
+        retrieveGame(new_game_id, client, function(err, game) {
             if (!game)
             {
                 client.emit('error-message', "Game not found!")
             }
             else
+            if (game_id)
             {
-                game_id = data['game']
+                client.emit('error-message', "Already connected!")
+                removeClient(new_game_id, client)
+            }
+            else
+            {
+                game_id = new_game_id
                 client.emit('game', game)
-                if (!clients[game_id]) clients[game_id] = []
-                clients[game_id].push(client)
             }
         })
     })
@@ -58,8 +114,7 @@ function onConnection(client)
 
         if (!game_id) return
 
-        // FIXME: should cache game state
-        storage.retrieve(game_id, function(err, game) {
+        retrieveGame(game_id, null, function(err, game) {
             if (!game)
             {
                 client.emit('error-message', "Game not found!")
@@ -70,10 +125,10 @@ function onConnection(client)
                 obj = MoveSelection(GameState(game), obj).objectify()
 
                 // Send it to all other clients:
-                for (var i in clients[game_id])
+                var clnts = clients[game_id]
+                for (var i = 0; i < clnts.length; ++i)
                 {
-                    var cl = clients[game_id][i]
-                    if (cl != client) cl.emit('selection', obj)
+                    if (clnts[i]) clnts[i].emit('selection', obj)
                 }
             }
         })
@@ -81,9 +136,9 @@ function onConnection(client)
 
     client.on('turn', function(moves) {
 
+        if (!game_id) return
 
-        // FIXME: should cache game state
-        storage.retrieve(game_id, function(err, game) {
+        retrieveGame(game_id, null, function(err, game) {
             if (!game)
             {
                 client.emit('error-message', "Game not found!")
@@ -107,7 +162,7 @@ function onConnection(client)
                     }
                     else
                     {
-                        for (var i in clients[game_id])
+                        for (var i = 0; i < clients[game_id].length; ++i)
                         {
                             clients[game_id][i].emit('turn', moves)
                         }
@@ -119,14 +174,7 @@ function onConnection(client)
 
     client.on('disconnect', function() {
         if (!game_id) return
-
-        for (var i in clients[game_id])
-        {
-            if (clients[game_id][i] === client)
-            {
-                clients[game_id].splice(i, 1)
-            }
-        }
+        removeClient(game_id, client)
     })
 }
 

@@ -15,8 +15,13 @@ HTML:
 Server:
   - Document client/server interface.
     (Maybe rename some messages to be clearer.)
-  - verification of turns
-  - keep active games in memory
+  - server should store game state, not just objectified version.
+    Proposal:
+        {
+            id:    [[game id]]
+            state: [[GameState instance]],
+            keys:  [[player keys]]
+        }
 
 Setup:
   - should have a "back" button!
