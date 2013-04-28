@@ -1,3 +1,5 @@
+"use strict"
+
 //
 // The MoveSelection class represents a (partial) set of moves to be executed
 // by the next player.

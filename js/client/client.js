@@ -1,3 +1,5 @@
+"use strict"
+
 var CustomEventSource = require("./CustomEventSource.js")
 var GameState         = require("../common/GameState.js")
 var MoveSelection     = require("../common/MoveSelection.js")

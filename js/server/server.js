@@ -1,3 +1,5 @@
+"use strict"
+
 // Atlantis game server implementation
 
 var socket_io   = require('socket.io')
@@ -22,8 +24,8 @@ function removeClient(game_id, client)
     }
     if (clnts.length == 0)
     {
-        delete games[id]
-        delete clients[id]
+        delete games[game_id]
+        delete clients[game_id]
         console.log("Game " + game_id + " released.")
     }
 }

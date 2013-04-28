@@ -1,3 +1,5 @@
+"use strict"
+
 function CustomEventSource()
 {
     var handlers = {}

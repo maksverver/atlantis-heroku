@@ -1,3 +1,5 @@
+"use strict"
+
 // Implements a key/object data store backed by a filesystem.
 
 var fs        = require("fs")

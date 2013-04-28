@@ -1,3 +1,4 @@
+  - show game list on index page (with a link to board setup)
   - chat?
   - revise transcript format to allow commentary?
   - make code formatting/identifier naming consistent across sources
@@ -10,7 +11,6 @@ HTML:
   - server should calculate stable regions & skip players without turns
     (careful: if nobody can move, the game is over!)
   - option to show field coordinates
-  - maybe later: textures for the colorblind?
 
 Server:
   - Document client/server interface.

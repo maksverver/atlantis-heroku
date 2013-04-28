@@ -1,3 +1,5 @@
+"use strict"
+
 var required_modules = {}
 
 /* node.js-like module system based around a single function: require().

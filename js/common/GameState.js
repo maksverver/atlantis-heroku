@@ -1,5 +1,7 @@
-Field  = require("./Field.js")
-Coords = require("./Coords.js")
+"use strict"
+
+var Field  = require("./Field.js")
+var Coords = require("./Coords.js")
 
 function deepCopy(obj)
 {

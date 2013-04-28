@@ -1,9 +1,11 @@
+"use strict"
+
 //
 //  Implements game setup functionality.
 //
 
-var Coords    = require("../common/Coords.js").Coords
-var GameState = require("../common/GameState.js").GameState
+var Coords    = require("../common/Coords.js")
+var GameState = require("../common/GameState.js")
 var client    = require("./client.js")
 
 var onSetupComplete = null
