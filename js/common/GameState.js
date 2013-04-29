@@ -321,6 +321,29 @@ function GameState(initial)
         return regions
     }
 
+    /* Returns the total score per player.
+       Note that these scores are not final until all regions are stable! */
+    function calculateScores(regions)
+    {
+        var scores = []
+        if (typeof regions == 'undefined')
+        {
+            regions = calculateRegions()
+        }
+        for (var i in players)
+        {
+            scores.push(0)
+        }
+        for (var i in regions)
+        {
+            if (regions[i].winner >= 0)
+            {
+                scores[regions[i].winner] += regions[i].fields.length
+            }
+        }
+        return scores
+    }
+
     return { getSegments:       getSegments,
              getPlayer:         getPlayer,
              getPlayers:        getPlayers,
@@ -338,7 +361,8 @@ function GameState(initial)
              addTurn:           addTurn,
              storeInitialState: storeInitialState,
              objectify:         objectify,
-             calculateRegions:  calculateRegions }
+             calculateRegions:  calculateRegions,
+             calculateScores:   calculateScores }
 }
 
 module.exports = GameState

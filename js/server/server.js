@@ -185,3 +185,20 @@ exports.listen = function(server, store)
     storage = store
     socket_io.listen(server).sockets.on('connection', onConnection)
 }
+
+exports.listGames = function()
+{
+    var result = []
+    for (var id in games)
+    {
+        var game = games[id]
+        var players = []
+        for (var i in game.players)
+        {
+            var player = game.players[i]
+            players.push({ name: player.name, color: player.color })
+        }
+        result.push({ id: id, players: players, connected: clients[id].length })
+    }
+    return result
+}

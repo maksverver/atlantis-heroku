@@ -1,31 +1,39 @@
 Milestone release:
-  - show game list on index page (with a link to board setup)
-  - provide separate player URLs
-  - allow player to specify their names
-  - show player scores
+  - server should validate transcript before accepting it in "create" handler
+  - server storage should track modification time
+  - server should list unconnected games too (by decreasing mtime?)
   - server should store game state, not just objectified version.
     Proposal:
         {
             id:    [[game id]]
             state: [[GameState instance]],
-            keys:  [[player keys]]
+            keys:  [[player keys]],
+            time-begun,
+            time-ended,
+            finished: true/false
         }
-
-  - chat support / revise transcript format to allow commentary?
+    (Document this somewhere!)
   - server should skip players with no moves
-    (careful: if nobody can move, the game is over!)
+    (and end the game when nobody can move)
+    (needs a protocol update to skip multiple moves?)
+
+Milestone release:
+  - provide separate player URLs
+  - allow player to specify their names
+  - chat support / revise transcript format to allow commentary?
+  - prettify frontpage
 
 To deploy on Heroku:
-  - implement PostgreSQL storage backend
+  - implement PostgreSQL storage backend (with modification time)
+
+Board canvas:
+  - option to show field coordinates
 
 HTML:
   - make reset button go back only one (sub)phase or move
-  - server should validate turns! (and moveselections?)
   - option to show field coordinates
   - separate board setup from rest of client (too much tight coupling!)
-
-Server:
-  (Nothing else for now.)
+  - add sound effects (especially to notify player of his turn)
 
 Setup mode:
   - should have a "back" button!

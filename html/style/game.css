@@ -2,12 +2,6 @@ body {
     margin:     0;
     padding:    0;
     overflow:   hidden;
-    background: white;
-    color:      black;
-}
-
-body, input, select {
-    font: 10pt Verdana, sans-serif;
 }
 
 canvas#Board {
@@ -99,3 +93,31 @@ label.ColorButton span {
 #MoveButton3               { background: url("../icons/grow1.png"); background-size: 100%; }
 #MoveButton3:hover         { background: url("../icons/grow2.png"); background-size: 100%; }
 #MoveButton3:disabled      { background: url("../icons/grow0.png"); background-size: 100%; }
+
+.PlayerScore
+{
+    text-align:     center;
+    display:        inline-block;
+    font-size:      12pt;
+    min-width:      6em;
+    margin:         4px;
+    border-radius:  1em;
+}
+
+.PlayerScore.Next
+{
+    border:         4px solid black;
+    margin:         0;
+}
+
+.PlayerScore .Name
+{
+    color:          #eee;
+}
+
+.PlayerScore .Score
+{
+    color:          white;
+    font-weight:    bold;
+    font-size:      20pt;
+}

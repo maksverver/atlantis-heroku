@@ -376,6 +376,47 @@ function formatHash(obj)
     return hash
 }
 
+function updateScoreBoard()
+{
+    var elem = document.getElementById("ScoreBoard").firstChild
+    var scores = gamestate.calculateScores()
+    var players = gamestate.getPlayers()
+    var nextIndex = gamestate.getNextPlayer()
+    for (var i = 0; i < players.length; ++i)
+    {
+        while (!elem.tagName || elem.tagName.toLowerCase() != "div") elem = elem.nextSibling
+        elem.className = elem.className.replace(" Next", "")
+        if (i == nextIndex) elem.className += " Next"
+        elem.lastChild.firstChild.data = scores[i].toString()
+        elem = elem.nextSibling
+    }
+}
+
+function createScoreBoard()
+{
+    var root = document.getElementById("ScoreBoard")
+    root.style.display = "block"
+    var players = gamestate.getPlayers()
+    for (var i in players)
+    {
+        var div = document.createElement("div")
+        div.className = "PlayerScore"
+        div.style.background = players[i].color
+        root.appendChild(div)
+
+        var nameDiv = document.createElement("div")
+        nameDiv.className = "Name"
+        nameDiv.appendChild(document.createTextNode(players[i].name || players[i].color))
+        div.appendChild(nameDiv)
+
+        var scoreDiv = document.createElement("score")
+        scoreDiv.className = "Score"
+        scoreDiv.appendChild(document.createTextNode("0"))
+        div.appendChild(scoreDiv)
+    }
+    updateScoreBoard()
+}
+
 function initialize()
 {
     // Parse parameters passed in URL hash:
@@ -389,6 +430,7 @@ function initialize()
         gamestate = GameState(state)
         selection = new MoveSelection(gamestate)
         document.getElementById("Buttons").style.display = "block"
+        createScoreBoard()
         createBoardCanvas()
         setMyTurn(true)
         redraw()
@@ -405,6 +447,7 @@ function initialize()
     server.on('turn', function(moves) {
         gamestate.reset()
         gamestate.addTurn(moves)
+        updateScoreBoard()
         selection = MoveSelection(gamestate)
         setMyTurn(true)
         updateMoveButtons()
