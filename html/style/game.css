@@ -10,10 +10,6 @@ body, input, select {
     font: 10pt Verdana, sans-serif;
 }
 
-#SelectBoard, #CustomizeBoard, #CustomizePlayer {
-    display: none;
-}
-
 canvas#Board {
     border: 1px solid blue;
     background: #80a0ff;

@@ -388,6 +388,7 @@ function initialize()
     server.on('game', function(state) {
         gamestate = GameState(state)
         selection = new MoveSelection(gamestate)
+        document.getElementById("Buttons").style.display = "block"
         createBoardCanvas()
         setMyTurn(true)
         redraw()

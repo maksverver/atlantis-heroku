@@ -7,7 +7,7 @@
 <body onload="client.initialize();layout.initialize()" onresize="layout.resize()">
 
 <div id="LeftColumn">
-  <div id="Buttons"><!--
+  <div id="Buttons" style="display:none"><!--
  --><button class="Icon" id="MoveButton0" title="Reset"   onclick="client.onMoveButton(0)" disabled></button><!--
  --><button class="Icon" id="MoveButton1" title="Move"    onclick="client.onMoveButton(1)" disabled></button><!--
  --><button class="Icon" id="MoveButton2" title="Explode" onclick="client.onMoveButton(2)" disabled></button><!--
@@ -18,7 +18,7 @@
 <div id="RightColumn">
   <div id="ColumnSplitter" class="Draggable"></div>
     <div id="RightColumnContents">
-    <div id="SelectBoard">
+    <div id="SelectBoard" style="display:none">
       <table>
         <tr>
         <th align="left">Shape</th>
@@ -49,11 +49,11 @@
         <tr><th colspan="2"><input type="button" value="Continue..." onclick="setup.onBoardShapeSelected()"></th></tr>
       </table>
     </div>
-    <div id="CustomizeBoard">
+    <div id="CustomizeBoard" style="display:none">
       <p>Click the board segments you want to remove.</p>
       <input type="button" value="Continue..." onclick="setup.onBoardCustomized()">
     </div>
-    <div id="CustomizePlayer">
+    <div id="CustomizePlayer" style="display:none">
       <p>Place initial stones for players by selecting a color and then clicking fields on the board.</p>
       <p>Note that the order of play is determined by the order in which stones are placed!</p>
       <p><!--
