@@ -4,7 +4,7 @@
 <link rel="stylesheet" type="text/css" href="style/game.css">
 <title>Atlantis</title>
 </head>
-<body onload="client.initialize()" onresize="client.resize()">
+<body onload="client.initialize();layout.initialize()" onresize="layout.resize()">
 
 <div id="LeftColumn">
   <div id="Buttons"><!--
@@ -75,6 +75,7 @@
 <script>
 var client = require('./js/client/client.js')
 var setup  = require('./js/client/setup.js')
+var layout = require('./js/client/layout.js')
 </script>
 </body>
 </html>

@@ -12,7 +12,6 @@ var board_canvas         = null
 var board_canvas_context = null
 var server               = null
 var board_events         = CustomEventSource()
-var mouse_events         = CustomEventSource()
 var my_turn              = false
 
 function getGameState()                 { return gamestate }
@@ -347,37 +346,6 @@ function setMyTurn(new_value)
     }
 }
 
-function installDragHandler()
-{
-    var x, y, t
-    var onMouseMoved = function(event) {
-        var dx = event.clientX - x
-        var dy = event.clientY - y
-        x += dx
-        y += dy
-        mouse_events.emit('drag', t, dx, dy)
-    }
-    var dragging = true
-    document.addEventListener("mousedown", function(event) {
-        if (!dragging)
-        {
-            t = event.target
-            if (t && t.className.indexOf("Draggable") >= 0)
-            {
-                x = event.clientX
-                y = event.clientY
-                event.preventDefault()
-                document.addEventListener("mousemove", onMouseMoved)
-                dragging = true
-            }
-        }
-    })
-    document.addEventListener("mouseup", function(event) {
-        document.removeEventListener("mousemove", onMouseMoved)
-        dragging = false
-    })
-}
-
 function parseHash(hash)
 {
     hash = hash.substr(hash.indexOf('#') + 1)
@@ -408,39 +376,8 @@ function formatHash(obj)
     return hash
 }
 
-function resize(initial)
-{
-    var h = innerHeight
-    var w = innerWidth
-    var l = document.getElementById("LeftColumn")
-    var r = document.getElementById("RightColumn")
-    var ratio = initial ? 0.7 : parseInt(l.style.width)/(parseInt(l.style.width) + parseInt(r.style.width))
-    l.style.width  = parseInt(ratio*w) + 'px'
-    l.style.height = h + 'px'
-    r.style.width  = w - parseInt(ratio*w) + 'px'
-    r.style.height = h + 'px'
-    r.style.left   = l.style.width
-}
-
 function initialize()
 {
-    installDragHandler()
-    mouse_events.addHandler('drag', function(target, dx, dy) {
-        if (target == document.getElementById('ColumnSplitter'))
-        {
-            var l = document.getElementById("LeftColumn")
-            var r = document.getElementById("RightColumn")
-            var rwidth = parseInt(r.style.width)
-            var rleft  = parseInt(r.style.left)
-            dx = Math.min(dx, rwidth - Math.max(rwidth - dx, 4))
-            dx = Math.max(dx, -rleft)
-            l.style.width = parseInt(l.style.width) + dx + 'px'
-            r.style.left  = rleft + dx + 'px'
-            r.style.width = rwidth - dx + 'px'
-        }
-    })
-    resize(true)
-
     // Parse parameters passed in URL hash:
     var params = parseHash(document.location.hash)
 
@@ -553,6 +490,5 @@ exports.getBoardEvents    = getBoardEvents
 exports.setGameState      = setGameState
 exports.onMoveButton      = onMoveButton
 exports.redraw            = redraw
-exports.resize            = resize
 exports.initialize        = initialize
 exports.createBoardCanvas = createBoardCanvas

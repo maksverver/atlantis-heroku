@@ -22,6 +22,7 @@ HTML:
   - make reset button go back only one (sub)phase or move
   - server should validate turns! (and moveselections?)
   - option to show field coordinates
+  - separate board setup from rest of client (too much tight coupling!)
 
 Server:
   (Nothing else for now.)
