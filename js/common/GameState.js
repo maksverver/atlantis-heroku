@@ -247,6 +247,80 @@ function GameState(initial)
         // TODO: turns/events
     }
 
+    /* Returns a list of connected regions of open fields.
+
+       Each region is an object with the following keys:
+        fields: list of ids of open fields in the region
+        stones: an object describing the stones players have in this region:
+                each key is a player index, and the corresponding value is the
+                (positive) number of this player's stones.
+        stable: a Boolean value indicating whether this region is stable (i.e.
+                contains at most one player's stones and has no adjacent growing
+                points)
+        winner: the winner of the region, or -1 if there is no winner (yet).
+                (The winner of a region is the only player to control stones in
+                 a stable region; if a region is empty there is no winner.)
+    */
+    function calculateRegions()
+    {
+        var visited = {}
+        var regions = []
+        for (var id in fields)
+        {
+            if (fields[id].isOpen() && !visited[id])
+            {
+                var region = { fields: [], stones: {}, stable: true, winner: -1 }
+                var queue = [id]
+                visited[id] = true
+                for (var pos = 0; pos < queue.length; ++pos)
+                {
+                    var id = queue[pos]
+                    region.fields.push(id)
+
+                    // Count stones on this field:
+                    var field  = fields[id]
+                    var stones = field.getStones()
+                    if (stones > 0)
+                    {
+                        var player = field.getPlayer()
+                        if (!region.stones[player]) region.stones[player] = 0
+                        region.stones[player] += stones
+                    }
+
+                    // Check adjacent fields:
+                    var coords = Coords.parse(id)
+                    for (var dir = 0; dir < 6; ++dir)
+                    {
+                        var next_id = coords.getNeighbour(dir).toString()
+                        if (!visited[next_id])
+                        {
+                            var field = fields[next_id]
+                            if (field)
+                            {
+                                if (field.isOpen())
+                                {
+                                    visited[next_id] = true
+                                    queue.push(next_id)
+                                }
+                                else
+                                if (field.isGrowing())
+                                {
+                                    region.stable = false
+                                }
+                            }
+                        }
+                    }
+                }
+
+                var players = Object.keys(region.stones)
+                if (players.length == 1) region.winner = parseInt(players[0])
+                if (players.length > 1) region.stable = false
+                regions.push(region)
+            }
+        }
+        return regions
+    }
+
     return { getSegments:       getSegments,
              getPlayer:         getPlayer,
              getPlayers:        getPlayers,
@@ -263,7 +337,8 @@ function GameState(initial)
              doExplosion:       doExplosion,
              addTurn:           addTurn,
              storeInitialState: storeInitialState,
-             objectify:         objectify }
+             objectify:         objectify,
+             calculateRegions:  calculateRegions }
 }
 
 module.exports = GameState
