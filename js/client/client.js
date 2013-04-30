@@ -287,7 +287,7 @@ function onMoveButton(i)
     if (i == 0)
     {
         // Reset game state and move selection:
-        gamestate.reset()
+        gamestate = GameState(gamestate.objectify())
         selection = MoveSelection(gamestate)
     }
     else
@@ -439,13 +439,13 @@ function initialize()
         alert("The server said: " + msg)
     })
     server.on('selection', function(obj) {
-        gamestate.reset()
+        gamestate = GameState(gamestate.objectify())
         selection = MoveSelection(gamestate, obj)
         updateMoveButtons()
         redraw()
     })
     server.on('turn', function(moves) {
-        gamestate.reset()
+        gamestate = GameState(gamestate.objectify())
         gamestate.addTurn(moves)
         updateScoreBoard()
         selection = MoveSelection(gamestate)

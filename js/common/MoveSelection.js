@@ -67,10 +67,13 @@ function MoveSelection(gamestate, initial)
             selected = initial.selected
         }
 
-        if (typeof initial.phase == "number" && typeof initial.subphase == "number")
+        if (typeof initial.phase == "number")
         {
-            while ( (phase < initial.phase || (phase == initial.phase && subphase < initial.subphase) ) &&
-                    nextPhase() ) { }
+            while (phase < initial.phase && nextPhase()) { }
+            if (typeof initial.subphase == "number")
+            {
+                while (phase == initial.phase && subphase < initial.subphase && nextPhase()) { }
+            }
         }
     }
 

@@ -2,6 +2,7 @@
 
 var Field  = require("./Field.js")
 var Coords = require("./Coords.js")
+var MoveSelection = require("./MoveSelection.js")
 
 function deepCopy(obj)
 {
@@ -14,13 +15,111 @@ function deepCopy(obj)
 
 function GameState(initial)
 {
-    var segments = null
-    var players  = null
-    var turns    = null
-    var fields   = null
+    var obj = { getSegments:       getSegments,
+                getPlayer:         getPlayer,
+                getPlayers:        getPlayers,
+                getFields:         getFields,
+                getField:          getField,
+                getNextPlayer:     getNextPlayer,
+                isValidMove:       isValidMove,
+                countNeighbours:   countNeighbours,
+                findExplosions:    findExplosions,
+                findGrowing:       findGrowing,
+                doMove:            doMove,
+                doExplosion:       doExplosion,
+                addTurn:           addTurn,
+                storeInitialState: storeInitialState,
+                objectify:         objectify,
+                calculateRegions:  calculateRegions,
+                calculateScores:   calculateScores }
 
-    // TODO: sanitize `initial`!
-    initialize(initial.segments, initial.players, initial.turns)
+    // TODO: freeze these after initialization?
+    var segments = []
+    var players  = []
+    var turns    = []
+    var fields   = {}
+
+    if (typeof initial == "object")
+    {
+        segments = []
+        players = []
+        turns = []
+
+        // Robustly parse segment list:
+        if (initial.segments instanceof Array)
+        {
+            for (var i = 0; i < initial.segments.length; ++i)
+            {
+                var s = initial.segments[i]
+                if (s instanceof Array)
+                {
+                    var segment = []
+                    for (var j = 0; j < s.length; ++j)
+                    {
+                        var coords = Coords.parse(s[j])
+                        if (coords)
+                        {
+                            var id = coords.toString()
+                            if (!fields[id])
+                            {
+                                segment.push(id)
+                                fields[id] = Field(id, segments.length)
+                            }
+                        }
+                    }
+                    if (segment.length > 0)
+                    {
+                        // Keep only non-empty segments:
+                        segments.push(segment)
+                    }
+                }
+            }
+
+            // Robustly parse player list:
+            if (initial.players instanceof Array)
+            {
+                for (var i = 0; i < initial.players.length; ++i)
+                {
+                    var p = initial.players[i]
+                    if (typeof p == "object" && typeof p.color == "string")
+                    {
+                        var player = { color: p.color, stacks: {} }
+                        if (typeof p.name == "string") player.name = p.name
+                        if (p.stacks instanceof Object)
+                        {
+                            for (var id in p.stacks)
+                            {
+                                var value = parseInt(p.stacks[id])
+                                if (value == value && fields[id] && fields[id].getPlayer() < 0)
+                                {
+                                    player.stacks[id] = value
+                                    fields[id].setPlayerValue(players.length, value)
+                                }
+                            }
+                        }
+                        if (Object.keys(player.stacks).length > 0)
+                        {
+                            // Keep only players initially controlling some stones:
+                            players.push(player)
+                        }
+                    }
+                }
+
+                // Note: turns list only makes sense if all initial players were preserved
+                if (players.length == initial.players.length && initial.turns instanceof Array)
+                {
+                    // Robustly parse turn list:
+                    for (var i = 0; i < initial.turns.length; ++i)
+                    {
+                        /* FIXME: going through MoveSelection is rather ugly/relatively slow!
+                           Maybe I should add a mothed to validate a turn here (or a robust
+                           version of addTurn that rejects invalid moves) */
+                        addTurn(MoveSelection(obj, { moves: initial.turns[i] }).getMoves())
+                    }
+                }
+            }
+        }
+    }
 
     function executeTurn(player, moves)
     {
@@ -49,57 +148,12 @@ function GameState(initial)
         }
     }
 
-    function initialize(s, p, t)
-    {
-        segments = deepCopy(s)
-        players  = deepCopy(p)
-        turns    = deepCopy(t)
-        fields   = {}
-
-        // Initialize fields:
-        for (var i = 0; i < segments.length; ++i)
-        {
-            for (var j = 0; j < segments[i].length; ++j)
-            {
-                var id = segments[i][j]
-                fields[id] = Field(id, i)
-            }
-        }
-
-        // Put player's stones on fields:
-        if (players)
-        {
-            for (var player in players)
-            {
-                for (var id in players[player].stacks)
-                {
-                    fields[id].setPlayerValue(player, players[player].stacks[id])
-                }
-            }
-        }
-
-        // Process player's turns:
-        if (turns)
-        {
-            for (var turn = 0; turn < turns.length; ++turn)
-            {
-                executeTurn(turn % players.length, turns[turn])
-            }
-        }
-    }
-
     function getSegments()      { return segments }
     function getPlayer(i)       { return players[i] }
     function getPlayers()       { return players }
-    function getTurns()         { return turns }
     function getFields()        { return fields }
     function getField(id)       { return fields[id] || null }
     function getNextPlayer()    { return turns ? turns.length % players.length : -1 }
-
-    function reset()
-    {
-        initialize(segments, players, turns)
-    }
 
     function isValidMove(src, dst)
     {
@@ -243,8 +297,8 @@ function GameState(initial)
         return { "format":   "Atlantis trancript",
                  "version":  "1.0",
                  "segments":  deepCopy(segments),
-                 "players":   deepCopy(players) }
-        // TODO: turns/events
+                 "players":   deepCopy(players),
+                 "turns":     deepCopy(turns) }
     }
 
     /* Returns a list of connected regions of open fields.
@@ -344,25 +398,7 @@ function GameState(initial)
         return scores
     }
 
-    return { getSegments:       getSegments,
-             getPlayer:         getPlayer,
-             getPlayers:        getPlayers,
-             getTurns:          getTurns,
-             getFields:         getFields,
-             getField:          getField,
-             getNextPlayer:     getNextPlayer,
-             reset:             reset,
-             isValidMove:       isValidMove,
-             countNeighbours:   countNeighbours,
-             findExplosions:    findExplosions,
-             findGrowing:       findGrowing,
-             doMove:            doMove,
-             doExplosion:       doExplosion,
-             addTurn:           addTurn,
-             storeInitialState: storeInitialState,
-             objectify:         objectify,
-             calculateRegions:  calculateRegions,
-             calculateScores:   calculateScores }
+    return obj
 }
 
 module.exports = GameState

@@ -72,22 +72,27 @@ function onConnection(client)
 
         if (game_id) return
 
-        // TODO: validate setup / remove unneeded data
-
-        game["turns"] = []
-
-        storage.create(game, function(err, id) {
-            if (err)
-            {
-                console.log("Failed to create game: " + err)
-                client.emit('error-message', "Could not create game!")
-            }
-            else
-            {
-                console.log('Created game "' + id + '".')
-                client.emit('created', id)
-            }
-        })
+        var gamestate = GameState(game)
+        if (gamestate.getPlayers().length < 2)
+        {
+            client.emit('error-message', "Invalid game state received!")
+        }
+        else
+        {
+            game = gamestate.objectify()
+            storage.create(game, function(err, id) {
+                if (err)
+                {
+                    console.log("Failed to create game: " + err)
+                    client.emit('error-message', "Could not create game!")
+                }
+                else
+                {
+                    console.log('Created game "' + id + '".')
+                    client.emit('created', id)
+                }
+            })
+        }
     })
 
     client.on('join', function (new_game_id) {
@@ -148,11 +153,7 @@ function onConnection(client)
             else
             {
                 // Sanitize turn:
-                var turn = MoveSelection(GameState(game), {
-                    phase:      1,
-                    subphase:   0,
-                    selected:   null,
-                    moves:      moves }).getMoves()
+                var turn = MoveSelection(GameState(game), { moves: moves }).getMoves()
 
                 // Store turn:
                 game["turns"].push(moves)

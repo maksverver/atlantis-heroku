@@ -1,5 +1,4 @@
 Milestone release:
-  - server should validate transcript before accepting it in "create" handler
   - server storage should track modification time
   - server should list unconnected games too (by decreasing mtime?)
   - server should store game state, not just objectified version.
@@ -37,3 +36,4 @@ HTML:
 
 Setup mode:
   - should have a "back" button!
+  - support single-player mode
