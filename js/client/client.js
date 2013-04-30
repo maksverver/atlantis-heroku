@@ -357,8 +357,15 @@ function parseHash(hash)
         var k = hash.indexOf('=', k)
         if (k >= i && k < j)
         {
-            params[decodeURIComponent(hash.substring(i, k))] = 
-                decodeURIComponent(hash.substring(k + 1, j))
+            try
+            {
+                params[decodeURIComponent(hash.substring(i, k))] = 
+                    decodeURIComponent(hash.substring(k + 1, j))
+            }
+            catch (e)
+            {
+                // silently ignored!
+            }
         }
         i = j + 1
     }

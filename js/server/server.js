@@ -187,19 +187,21 @@ exports.listen = function(server, store)
     socket_io.listen(server).sockets.on('connection', onConnection)
 }
 
-exports.listGames = function()
+exports.listGames = function(callback)
 {
-    var result = []
-    for (var id in games)
-    {
-        var game = games[id]
-        var players = []
-        for (var i in game.players)
+    var games = storage.list(function(err, games) {
+        if (err)
         {
-            var player = game.players[i]
-            players.push({ name: player.name, color: player.color })
+            callback(err, [])
         }
-        result.push({ id: id, players: players, connected: clients[id].length })
-    }
-    return result
+        else
+        {
+            for (var i in games)
+            {
+                var id = games[i].id
+                games[i].online = clients[id] ? clients[id].length : 0
+            }
+            callback(null, games)
+        }
+    })
 }

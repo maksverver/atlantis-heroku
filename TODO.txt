@@ -1,6 +1,4 @@
 Milestone release:
-  - server storage should track modification time
-  - server should list unconnected games too (by decreasing mtime?)
   - server should store game state, not just objectified version.
     Proposal:
         {
@@ -27,6 +25,10 @@ To deploy on Heroku:
 
 Board canvas:
   - option to show field coordinates
+
+Server:
+ - sort/limit list of games (sort by online count first, mtime second?)
+   (move code from client into FileStorage.)
 
 HTML:
   - make reset button go back only one (sub)phase or move

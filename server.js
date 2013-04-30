@@ -14,7 +14,17 @@ app.use('/games', function(request, response, next) {
     {
         return next()
     }
-    response.jsonp(atlantis.listGames())
+    atlantis.listGames(function(err, games) {
+        if (err)
+        {
+            console.log("listGames failed: " + err)
+            response.jsonp({error: err})
+        }
+        else
+        {
+            response.jsonp(games)
+        }
+    })
 })
 
 var storage = require('./js/server/FileStorage.js')

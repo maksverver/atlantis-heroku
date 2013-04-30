@@ -91,8 +91,59 @@ var create = function(obj, callback)  /* callback(err, id) */
     })
 }
 
+var list = function(callback)  /* callback(err, games) */
+{
+    fs.readdir(directory, function(err, files) {
+
+        var results = []
+
+        if (err)
+        {
+            callback(err, files)
+        }
+        else
+        {
+            stat_file(0)
+        }
+
+        function stat_file(i)
+        {
+            if (i == files.length)
+            {
+                callback(null, results)
+                return
+            }
+
+            try
+            {
+                var id = decodeURIComponent(files[i].substring(0, files[i].length - suffix.length))
+            }
+            catch (e)
+            {
+                var id = null
+            }
+
+            if (id && files[i] == encodeURIComponent(id) + suffix)
+            {
+                fs.stat(directory + '/' + files[i], function(err, st) {
+                    if (!err)
+                    {
+                        results.push({id: id, size: st.size, mtime: st.mtime})
+                    }
+                    stat_file(i + 1)
+                })
+            }
+            else
+            {
+                stat_file(i + 1)
+            }
+        }
+    })
+}
+
 exports.setDirectory = function(dir) { directory = dir }
 exports.setSuffix    = function(suf) { suffix = suf}
 exports.create       = create
 exports.store        = store
 exports.retrieve     = retrieve
+exports.list         = list
