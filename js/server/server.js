@@ -9,7 +9,7 @@ var GameState     = require("../common/GameState.js")
 var MoveSelection = require("../common/MoveSelection.js")
 
 var storage     = null
-var games       = {} 
+var games       = {}
 
 function removeClient(game_id, client)
 {
@@ -46,14 +46,16 @@ function retrieveGame(game_id, new_client, callback)
         {
             if (new_client) clients[game_id].push(new_client)
             callback(null, games[game_id])
-        } 
+        }
         else
         {
             if (game)
             {
                 console.log("Game " + game_id + " cached.")
+                var state = GameState(game)
                 var game = { id:      game_id,
-                             state:   GameState(game),
+                             state:   state,
+                             over:    state.isGameOver(),
                              clients: [] }
                 if (new_client) game.clients.push(new_client)
                 games[game_id] = game
@@ -131,15 +133,25 @@ function onConnection(client)
                 client.emit('error-message', "Game not found!")
             }
             else
+            if (game.over)
             {
-                // Sanitize MoveSelection object:
-                obj = MoveSelection(game.state, obj).objectify()
+                client.emit('error-message', "Game is over!")
+            }
+            else
+            {
+                /* HACK: partially sanitize MoveSelection object.
+                         Can't pass `obj` to MoveSelection constructor directly,
+                         because it will modify the gamestate if phase > 1 ! */
+                // FIXME: add dedicated method to GameState for move validation?
+                var clean = { moves:    MoveSelection(game.state, { moves: obj.moves }).getMoves(),
+                              phase:    parseInt(obj.phase)    || 1,
+                              subphase: parseInt(obj.subphase) || 0 }
 
                 // Send it to all other clients:
                 var clients = games[game_id].clients
                 for (var i in clients)
                 {
-                    if (clients[i] != client) clients[i].emit('selection', obj)
+                    if (clients[i] != client) clients[i].emit('selection', clean)
                 }
             }
         })
@@ -155,28 +167,63 @@ function onConnection(client)
                 client.emit('error-message', "Game not found!")
             }
             else
+            if (game.over)
+            {
+                client.emit('error-message', "Game is over!")
+            }
+            else
             {
                 // Sanitize turn:
-                // FIXME: add dedicated method to GameState for this!
+                // FIXME: add dedicated method to GameState for move validation?
                 var turn = MoveSelection(game.state, { moves: moves }).getMoves()
 
-                // Store turn:
-                game.state.addTurn(moves)
+                if (turn.length < moves.length)
+                {
+                    // Invalid turn!  Find a problematic move and notify the client:
+                    var i = 0
+                    while (i < turn.length && turn[i][0] == moves[i][0] && turn[i][1] == turn[i][0]) ++i
+                    client.emit('error-message', "Invalid move: " + moves[i][0] + "-" + moves[i][1])
+                }
+                else
+                {
+                    // Update game state:
+                    var turns = [turn]
+                    game.state.addTurn(turn)
 
-                storeGame(game, function(err) {
-                    if (err)
+                    // Now check if the game is over:
+                    var regions = game.state.calculateRegions()
+                    if (game.state.isGameOver(regions))
                     {
-                        client.emit('error-message', "Failed to store turn!")
+                        game.over = true
                     }
                     else
                     {
+                        // Skip players that don't have moves to make:
+                        while (!game.state.hasPlayerMoves(game.state.getNextPlayer(), regions))
+                        {
+                            // Add a mandatory pass.
+                            turns.push([])
+                            game.state.addTurn([])
+                        }
+                    }
+
+                    // Store updated game state:
+                    storeGame(game, function(err) {
+                        if (err)
+                        {
+                            Console.log("Failed to store game " + game_id + ": " + err)
+                            client.emit('error-message', "Failed to store turn!")
+                            // ... continue anyway because we have the game cached
+                        }
+
+                        // Send turn updates to clients:
                         var clients = games[game_id].clients
                         for (var i in clients)
                         {
-                            clients[i].emit('turn', moves)
+                            for (var j in turns) clients[i].emit('turn', turns[j])
                         }
-                    }
-                })
+                    })
+                }
             }
         })
     })

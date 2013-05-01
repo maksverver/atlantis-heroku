@@ -1,7 +1,5 @@
 Milestone release:
-  - server should skip players with no moves
-    (and end the game when nobody can move)
-    (needs a protocol update to skip multiple moves?)
+  - client should respect game-over
 
 Milestone release:
   - provide separate player URLs

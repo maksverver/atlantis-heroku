@@ -31,7 +31,9 @@ function GameState(initial)
                 storeInitialState: storeInitialState,
                 objectify:         objectify,
                 calculateRegions:  calculateRegions,
-                calculateScores:   calculateScores }
+                calculateScores:   calculateScores,
+                isGameOver:        isGameOver,
+                hasPlayerMoves:    hasPlayerMoves }
 
     // TODO: freeze these after initialization?
     var segments = []
@@ -41,10 +43,6 @@ function GameState(initial)
 
     if (typeof initial == "object")
     {
-        segments = []
-        players = []
-        turns = []
-
         // Robustly parse segment list:
         if (initial.segments instanceof Array)
         {
@@ -396,6 +394,33 @@ function GameState(initial)
             }
         }
         return scores
+    }
+
+    /* Returns whether the game is over (i.e. all board regions are stable) */
+    function isGameOver(regions)
+    {
+        if (typeof regions == 'undefined')
+        {
+            regions = calculateRegions()
+        }
+        for (var i in regions)
+        {
+            if (!regions[i].stable) return false
+        }
+        return true
+    }
+
+    function hasPlayerMoves(player, regions)
+    {
+        if (typeof regions == 'undefined')
+        {
+            regions = calculateRegions()
+        }
+        for (var i in regions)
+        {
+            if (!regions[i].stable && regions[i].stones[player] > 0) return true
+        }
+        return false
     }
 
     return obj
