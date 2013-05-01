@@ -8,24 +8,22 @@ var fs          = require('fs')
 var GameState     = require("../common/GameState.js")
 var MoveSelection = require("../common/MoveSelection.js")
 
-var storage     = null  // game storage
-var clients     = {}    // game-id => list of clients connected to each game
-var games       = {}    // game-id => game object
+var storage     = null
+var games       = {} 
 
 function removeClient(game_id, client)
 {
-    var clnts = clients[game_id]
-    for (var i = 0; i < clnts.length; ++i)
+    var clients = games[game_id].clients
+    for (var i = 0; i < clients.length; ++i)
     {
-        if (clnts[i] === client)
+        if (clients[i] === client)
         {
-            clnts.splice(i--, 1)
+            clients.splice(i--, 1)
         }
     }
-    if (clnts.length == 0)
+    if (clients.length == 0)
     {
         delete games[game_id]
-        delete clients[game_id]
         console.log("Game " + game_id + " released.")
     }
 }
@@ -34,7 +32,7 @@ function retrieveGame(game_id, new_client, callback)
 {
     if (games[game_id])
     {
-        if (new_client) clients[game_id].push(new_client)
+        if (new_client) games[game_id].clients.push(new_client)
         callback(null, games[game_id])
         return
     }
@@ -54,14 +52,20 @@ function retrieveGame(game_id, new_client, callback)
             if (game)
             {
                 console.log("Game " + game_id + " cached.")
+                var game = { id:      game_id,
+                             state:   GameState(game),
+                             clients: [] }
+                if (new_client) game.clients.push(new_client)
                 games[game_id] = game
-                clients[game_id] = []
-                if (new_client) clients[game_id].push(new_client)
             }
             callback(err, game)
         }
     })
+}
 
+function storeGame(game, callback)
+{
+    storage.store(game.id, game.state.objectify(), callback)
 }
 
 function onConnection(client)
@@ -112,7 +116,7 @@ function onConnection(client)
             else
             {
                 game_id = new_game_id
-                client.emit('game', game)
+                client.emit('game', game.state.objectify())
             }
         })
     })
@@ -129,13 +133,13 @@ function onConnection(client)
             else
             {
                 // Sanitize MoveSelection object:
-                obj = MoveSelection(GameState(game), obj).objectify()
+                obj = MoveSelection(game.state, obj).objectify()
 
                 // Send it to all other clients:
-                var clnts = clients[game_id]
-                for (var i = 0; i < clnts.length; ++i)
+                var clients = games[game_id].clients
+                for (var i in clients)
                 {
-                    if (clnts[i] != client) clnts[i].emit('selection', obj)
+                    if (clients[i] != client) clients[i].emit('selection', obj)
                 }
             }
         })
@@ -153,21 +157,23 @@ function onConnection(client)
             else
             {
                 // Sanitize turn:
-                var turn = MoveSelection(GameState(game), { moves: moves }).getMoves()
+                // FIXME: add dedicated method to GameState for this!
+                var turn = MoveSelection(game.state, { moves: moves }).getMoves()
 
                 // Store turn:
-                game["turns"].push(moves)
+                game.state.addTurn(moves)
 
-                storage.store(game_id, game, function(err) {
+                storeGame(game, function(err) {
                     if (err)
                     {
                         client.emit('error-message', "Failed to store turn!")
                     }
                     else
                     {
-                        for (var i = 0; i < clients[game_id].length; ++i)
+                        var clients = games[game_id].clients
+                        for (var i in clients)
                         {
-                            clients[game_id][i].emit('turn', moves)
+                            clients[i].emit('turn', moves)
                         }
                     }
                 })
@@ -189,19 +195,20 @@ exports.listen = function(server, store)
 
 exports.listGames = function(callback)
 {
-    var games = storage.list(function(err, games) {
+    storage.list(function(err, gamelist) {
         if (err)
         {
             callback(err, [])
         }
         else
         {
-            for (var i in games)
+            // Augment game list with count of connected clients:
+            for (var i in gamelist)
             {
-                var id = games[i].id
-                games[i].online = clients[id] ? clients[id].length : 0
+                var game = games[gamelist[i].id]
+                gamelist[i].online = game ? game.clients.length : 0
             }
-            callback(null, games)
+            callback(null, gamelist)
         }
     })
 }

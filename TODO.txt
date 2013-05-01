@@ -1,15 +1,4 @@
 Milestone release:
-  - server should store game state, not just objectified version.
-    Proposal:
-        {
-            id:    [[game id]]
-            state: [[GameState instance]],
-            keys:  [[player keys]],
-            time-begun,
-            time-ended,
-            finished: true/false
-        }
-    (Document this somewhere!)
   - server should skip players with no moves
     (and end the game when nobody can move)
     (needs a protocol update to skip multiple moves?)
