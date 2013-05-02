@@ -2,7 +2,6 @@
 
 var Field  = require("./Field.js")
 var Coords = require("./Coords.js")
-var MoveSelection = require("./MoveSelection.js")
 
 function deepCopy(obj)
 {
@@ -15,26 +14,6 @@ function deepCopy(obj)
 
 function GameState(initial)
 {
-    var obj = { getSegments:       getSegments,
-                getPlayer:         getPlayer,
-                getPlayers:        getPlayers,
-                getFields:         getFields,
-                getField:          getField,
-                getNextPlayer:     getNextPlayer,
-                isValidMove:       isValidMove,
-                countNeighbours:   countNeighbours,
-                findExplosions:    findExplosions,
-                findGrowing:       findGrowing,
-                doMove:            doMove,
-                doExplosion:       doExplosion,
-                addTurn:           addTurn,
-                storeInitialState: storeInitialState,
-                objectify:         objectify,
-                calculateRegions:  calculateRegions,
-                calculateScores:   calculateScores,
-                isGameOver:        isGameOver,
-                hasPlayerMoves:    hasPlayerMoves }
-
     // TODO: freeze these after initialization?
     var segments = []
     var players  = []
@@ -109,10 +88,7 @@ function GameState(initial)
                     // Robustly parse turn list:
                     for (var i = 0; i < initial.turns.length; ++i)
                     {
-                        /* FIXME: going through MoveSelection is rather ugly/relatively slow!
-                           Maybe I should add a mothed to validate a turn here (or a robust
-                           version of addTurn that rejects invalid moves) */
-                        addTurn(MoveSelection(obj, { moves: initial.turns[i] }).getMoves())
+                        addTurn(filterValidMoves(initial.turns[i]))
                     }
                 }
             }
@@ -182,6 +158,44 @@ function GameState(initial)
         }
 
         return true
+    }
+
+    /* Robustly sanitizes an array of moves.
+
+       Returns an array of all valid moves from the input.  If `segmentsUsed`
+       is passed too, it should by an object that will be used and updated to
+       determine which segments have been moved from.
+
+       This function is intended to be robust: it will take any value of `moves`
+       and try to use as many moves from it as possible, even if it doesn't
+       contain data in the expected format. */
+    function filterValidMoves(moves, segmentsUsed)
+    {
+        if (typeof segmentsUsed == 'undefined') segmentsUsed = {}
+
+        var result = []
+        if (moves instanceof Array)
+        {
+            for (var i = 0; i < moves.length; ++i)
+            {
+                if (moves[i].length == 2)
+                {
+                    var src = moves[i][0]
+                    var dst = moves[i][1]
+                    if ( typeof src == "string" &&
+                         typeof dst == "string" && isValidMove(src, dst) )
+                    {
+                        var segment = fields[src].getSegment()
+                        if (!segmentsUsed[segment])
+                        {
+                            segmentsUsed[segment] = true
+                            result.push([src,dst])
+                        }
+                    }
+                }
+            }
+        }
+        return result
     }
 
     function countNeighbours(id)
@@ -423,7 +437,26 @@ function GameState(initial)
         return false
     }
 
-    return obj
+    return { getSegments:       getSegments,
+             getPlayer:         getPlayer,
+             getPlayers:        getPlayers,
+             getFields:         getFields,
+             getField:          getField,
+             getNextPlayer:     getNextPlayer,
+             isValidMove:       isValidMove,
+             filterValidMoves:  filterValidMoves,
+             countNeighbours:   countNeighbours,
+             findExplosions:    findExplosions,
+             findGrowing:       findGrowing,
+             doMove:            doMove,
+             doExplosion:       doExplosion,
+             addTurn:           addTurn,
+             storeInitialState: storeInitialState,
+             objectify:         objectify,
+             calculateRegions:  calculateRegions,
+             calculateScores:   calculateScores,
+             isGameOver:        isGameOver,
+             hasPlayerMoves:    hasPlayerMoves }
 }
 
 module.exports = GameState

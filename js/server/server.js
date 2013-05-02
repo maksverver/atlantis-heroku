@@ -6,7 +6,6 @@ var socket_io   = require('socket.io')
 var fs          = require('fs')
 
 var GameState     = require("../common/GameState.js")
-var MoveSelection = require("../common/MoveSelection.js")
 
 var storage     = null
 var games       = {}
@@ -142,8 +141,7 @@ function onConnection(client)
                 /* HACK: partially sanitize MoveSelection object.
                          Can't pass `obj` to MoveSelection constructor directly,
                          because it will modify the gamestate if phase > 1 ! */
-                // FIXME: add dedicated method to GameState for move validation?
-                var clean = { moves:    MoveSelection(game.state, { moves: obj.moves }).getMoves(),
+                var clean = { moves:    game.state.filterValidMoves(obj.moves),
                               phase:    parseInt(obj.phase)    || 1,
                               subphase: parseInt(obj.subphase) || 0 }
 
@@ -174,8 +172,7 @@ function onConnection(client)
             else
             {
                 // Sanitize turn:
-                // FIXME: add dedicated method to GameState for move validation?
-                var turn = MoveSelection(game.state, { moves: moves }).getMoves()
+                var turn = game.state.filterValidMoves(moves)
 
                 if (turn.length < moves.length)
                 {

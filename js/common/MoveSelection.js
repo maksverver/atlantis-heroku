@@ -43,24 +43,8 @@ function MoveSelection(gamestate, initial)
         /* Note that this parsing code is intended to be robust: it will not
            crash if an invalid state object is passed in, and it will not accept
            invalid moves. */
-        if (initial.moves instanceof Array)
-        {
-            for (var i = 0; i < initial.moves.length; ++i)
-            {
-                if (initial.moves[i].length == 2)
-                {
-                    var src = initial.moves[i][0]
-                    var dst = initial.moves[i][1]
-                    if ( typeof src == "string" && possibleMoves[src] &&
-                         !segmentsUsed[gamestate.getField(src).getSegment()] &&
-                         typeof dst == "string" && possibleMoves[src][dst] )
-                    {
-                        segmentsUsed[gamestate.getField(src).getSegment()] = true
-                        moves.push([src,dst])
-                    }
-                }
-            }
-        }
+
+        moves = gamestate.filterValidMoves(initial.moves, segmentsUsed)
 
         if (typeof initial.selected == "string" && possibleMoves[initial.selected])
         {
