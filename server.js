@@ -3,7 +3,7 @@ var express     = require('express')
 var http        = require('http')
 var url         = require('url')
 
-var port = 8027
+var port = process.env.PORT || 8027
 var app = express()
 app.enable("jsonp callback");
 app.use('/',          express.static(__dirname + '/html'))
