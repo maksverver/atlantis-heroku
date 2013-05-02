@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="style/base.css">
+<title>Atlantis games</title>
+</head>
+<body>
+<h1>Active Atlantis games</h1>
+<table id="GamesList">
+<tr><th>Game ID</th><th>Clients</th><th>Last&nbsp;move</th></tr>
+</table>
+<p><a href="game.html">Set up a new game board...</a></p>
+<script>
+function onGamesList(games)
+{
+    var table = document.getElementById("GamesList")
+
+    for (var i in games)
+    {
+        games[i].mtime = new Date(games[i].mtime)
+    }
+
+    games.sort(function(a,b) {
+        if (a.online > b.online) return -1
+        if (a.online < b.online) return +1
+        if (a.mtime.valueOf() > b.mtime.valueOf()) return -1
+        if (a.mtime.valueOf() < b.mtime.valueOf()) return +1
+        return 0
+    })
+
+    for (var i in games)
+    {
+        var game = games[i]
+
+        var tr = document.createElement("tr")
+        table.appendChild(tr)
+
+        // Game ID
+        var td = document.createElement("td")
+        td.style.fontFamily = "mono";
+        var a = document.createElement("a")
+        a.href = "game.html#game=" + encodeURIComponent(game.id)
+        a.target = "game-" + game.id
+        a.appendChild(document.createTextNode(game.id))
+        td.appendChild(a)
+        tr.appendChild(td)
+
+        // Online client count:
+        tr.appendChild(td)
+        var td = document.createElement("td")
+        td.style.textAlign = "center"
+        td.appendChild(document.createTextNode(game.online))
+        tr.appendChild(td)
+
+        // Modification time
+        var td = document.createElement("td")
+        td.appendChild(document.createTextNode(game.mtime))
+        tr.appendChild(td)
+    }
+}
+</script>
+<script src="games/?callback=onGamesList"></script>
+</body>
+</html>
