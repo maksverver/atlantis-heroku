@@ -10,12 +10,6 @@ var GameState     = require("../common/GameState.js")
 var storage     = null
 var games       = {}
 
-// Configure socket.io for use on Heroku:
-// https://devcenter.heroku.com/articles/using-socket-io-with-node-js-on-heroku
-socket_io.set("transports", ["xhr-polling", "jsonp-polling"])
-socket_io.set("polling duration", 10)
-socket_io.set("log level", 1)
-
 function removeClient(game_id, client)
 {
     var clients = games[game_id].clients
@@ -240,7 +234,15 @@ function onConnection(client)
 exports.listen = function(server, store)
 {
     storage = store
-    socket_io.listen(server).sockets.on('connection', onConnection)
+    var io = socket_io.listen(server)
+
+    // Configure socket.io for use on Heroku:
+    // https://devcenter.heroku.com/articles/using-socket-io-with-node-js-on-heroku
+    io.set("transports", ["xhr-polling", "jsonp-polling"])
+    io.set("polling duration", 10)
+    io.set("log level", 1)
+
+    io.sockets.on('connection', onConnection)
 }
 
 exports.listGames = function(callback)
