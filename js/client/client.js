@@ -434,12 +434,20 @@ function initialize()
     server.on('connection-failed', function () { alert('Connection failed!') })
     server.on('disconnected', function () { alert('Connection lost!') })
     server.on('game', function(state) {
-        gamestate = GameState(state)
-        selection = new MoveSelection(gamestate)
         document.getElementById("Buttons").style.display = "block"
+        gamestate = GameState(state)
         createScoreBoard()
         createBoardCanvas()
-        setMyTurn(true)
+        if (!gamestate.isGameOver())
+        {
+            selection = new MoveSelection(gamestate)
+            setMyTurn(true)
+        }
+        else
+        {
+            selection = null
+            setMyTurn(false)
+        }
         redraw()
     })
     server.on('error-message', function(msg) {
@@ -452,11 +460,19 @@ function initialize()
         redraw()
     })
     server.on('turn', function(moves) {
-        gamestate = GameState(gamestate.objectify())
+        gamestate = GameState(gamestate.objectify())  // reset to turn start
         gamestate.addTurn(moves)
         updateScoreBoard()
-        selection = MoveSelection(gamestate)
-        setMyTurn(true)
+        if (!gamestate.isGameOver())
+        {
+            selection = MoveSelection(gamestate)
+            setMyTurn(true)
+        }
+        else
+        {
+            selection = null
+            setMyTurn(false)
+        }
         updateMoveButtons()
         redraw()
     })
