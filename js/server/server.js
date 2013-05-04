@@ -2,13 +2,14 @@
 
 // Atlantis game server implementation
 
-var socket_io   = require('socket.io')
 var fs          = require('fs')
+var url         = require('url')
+var Sequelize   = require('sequelize')
+var socket_io   = require('socket.io')
+var GameState   = require("../common/GameState.js")
 
-var GameState     = require("../common/GameState.js")
-
-var storage     = null
-var games       = {}
+var orm         = { }       // Sequelize ORM constructors
+var games       = { }       // currently loaded games
 
 function removeClient(game_id, client)
 {
@@ -39,34 +40,36 @@ function retrieveGame(game_id, new_client, callback)
     /* FIXME: there is sort of a race condition here. Multiple clients
               might call retrieveGame() at the same time! */
 
-    storage.retrieve(game_id, function(err, game) {
-
-        if (games[game_id])  // handle race-condition
+    orm.Game.find(game_id).error(function(err) {
+        callback(err, null)
+    }).success(function(game) {
+        if (!game) {
+            callback(new Error("Game not found"), null)
+        }
+        if (games[game_id])
         {
-            if (new_client) clients[game_id].push(new_client)
-            callback(null, games[game_id])
+            game = games[game_id]   // handle race-condition
         }
         else
         {
-            if (game)
-            {
-                console.log("Game " + game_id + " cached.")
-                var state = GameState(game)
-                var game = { id:      game_id,
-                             state:   state,
-                             over:    state.isGameOver(),
-                             clients: [] }
-                if (new_client) game.clients.push(new_client)
-                games[game_id] = game
-            }
-            callback(err, game)
+            game.state   = GameState(JSON.parse(game.serializedState))
+            game.clients = []
+            games[game_id] = game
+            console.log("Game " + game_id + " cached.")
         }
+        if (new_client) game.clients.push(new_client)
+        callback(null, game)
     })
 }
 
 function storeGame(game, callback)
 {
-    storage.store(game.id, game.state.objectify(), callback)
+    game.serializedState = JSON.stringify(game.state.objectify())
+    game.save().success(function() {
+        callback(null)
+    }).error(function(err) {
+        callback(err)
+    })
 }
 
 function onConnection(client)
@@ -85,23 +88,22 @@ function onConnection(client)
         else
         {
             game = gamestate.objectify()
-            storage.create(game, function(err, id) {
-                if (err)
-                {
-                    console.log("Failed to create game: " + err)
-                    client.emit('error-message', "Could not create game!")
-                }
-                else
-                {
-                    console.log('Created game "' + id + '".')
-                    client.emit('created', id)
-                }
+            orm.Game.create({
+                serializedState: JSON.stringify(gamestate.objectify())
+            }).success(function(game) {
+                console.log('Created game "' + game.id + '".')
+                client.emit('created', game.id)
+            }).error(function(err) {
+                console.log("Failed to create game: " + err)
+                client.emit('error-message', "Could not create game!")
             })
         }
     })
 
     client.on('join', function (new_game_id) {
-        if (typeof new_game_id != "string") return
+
+        new_game_id = parseInt(new_game_id)
+        if (!(new_game_id > 0)) return
 
         retrieveGame(new_game_id, client, function(err, game) {
             if (!game)
@@ -187,21 +189,20 @@ function onConnection(client)
                     var turns = [turn]
                     game.state.addTurn(turn)
 
-                    // Now check if the game is over:
+                    // Now advance to the next player that can make a move:
                     var regions = game.state.calculateRegions()
-                    if (game.state.isGameOver(regions))
+                    while (!game.state.hasPlayerMoves(game.state.getNextPlayer(), regions))
                     {
-                        game.over = true
-                    }
-                    else
-                    {
-                        // Skip players that don't have moves to make:
-                        while (!game.state.hasPlayerMoves(game.state.getNextPlayer(), regions))
+                        if (game.state.isGameOver(regions))
                         {
-                            // Add a mandatory pass.
-                            turns.push([])
-                            game.state.addTurn([])
+                            game.over = true
+                            break
                         }
+
+                        // Add a mandatory pass.
+                        turns.push([])
+                        game.state.addTurn([])
+                        regions = game.state.calculateRegions()
                     }
 
                     // Store updated game state:
@@ -233,26 +234,51 @@ function onConnection(client)
 
 exports.listen = function(server, store)
 {
-    storage = store
-    socket_io.listen(server).sockets.on('connection', onConnection)
+    // Setup database connection:
+    if (!process.env.DATABASE_URL)
+    {
+        throw new Error("environmental variable DATABASE_URL not set")
+    }
+    var params = url.parse(process.env.DATABASE_URL, true)
+    var dialect = params.protocol.substring(0, params.protocol.indexOf(':'))
+    var database = params.pathname.substring(params.pathname.indexOf('/') + 1)
+    var username = params.auth ? params.auth.substring(0, params.auth.indexOf(':'))  : ""
+    var password = params.auth ? params.auth.substring(params.auth.indexOf(':') + 1) : ""
+    var sequelize = new Sequelize( database, username, password, {
+        host: params.hostname, port: params.port, dialect: dialect,
+        native: true,      /* this is used by PostgreSQL in order to support SSL */
+        storage: database, /* this is used by SQLite as the database file path */
+        define: { charset: "utf8" } })
+
+    // Create database schema:
+    orm.Game = sequelize.define("Game", {
+        id:              { type: Sequelize.INTEGER, allowNull: false, autoIncrement: true },
+        serializedState: { type: Sequelize.TEXT,    allowNull: false                      },
+        over:            { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false } })
+
+    sequelize.sync().done(function() {
+        socket_io.listen(server).sockets.on('connection', onConnection)
+    })
 }
 
 exports.listGames = function(callback)
 {
-    storage.list(function(err, gamelist) {
-        if (err)
+    // FIXME: this retrieves full rows, even the serializedState field that I don't want!
+    // FIXME: do ordering + limiting on the server side
+    orm.Game.findAll().error(function(err) {
+        callback(err, [])
+    }).success(function(rows){
+        var gamelist = []
+        for (var i in rows)
         {
-            callback(err, [])
+            var row = rows[i]
+            gamelist.push({
+                "id":         row.id,
+                "createdAt":  row.createdAt,    
+                "updatedAt":  row.updatedAt,
+                "over":       row.over,
+                "online":     games[row.id] ? games[row.id].clients.length : 0 })
         }
-        else
-        {
-            // Augment game list with count of connected clients:
-            for (var i in gamelist)
-            {
-                var game = games[gamelist[i].id]
-                gamelist[i].online = game ? game.clients.length : 0
-            }
-            callback(null, gamelist)
-        }
+        callback(null, gamelist)
     })
 }

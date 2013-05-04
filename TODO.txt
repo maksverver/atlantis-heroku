@@ -1,6 +1,5 @@
- ! publish milestone somewhere !
-
-Milestone release:
+Next milestone release:
+  - maybe user accounts?
   - provide separate player URLs
   - allow player to specify their names
   - chat support / revise transcript format to allow commentary?

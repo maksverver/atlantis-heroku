@@ -27,10 +27,7 @@ app.use('/games', function(request, response, next) {
     })
 })
 
-var storage = require('./js/server/FileStorage.js')
-storage.setDirectory(__dirname + '/games')
-
 var server = http.createServer(app)
 server.listen(port)
-atlantis.listen(server, storage)
+atlantis.listen(server)
 console.log("Atlantis server listening on port " + port + ".")
