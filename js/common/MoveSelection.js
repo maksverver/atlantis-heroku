@@ -95,7 +95,7 @@ function MoveSelection(gamestate, initial)
         {
             if (possibleMoves[id])
             {
-                var segment = gamestate.getField(id).getSegment()
+                var res = 1, segment = gamestate.getField(id).getSegment()
                 if (segmentsUsed[segment])
                 {
                     for (var i in moves)
@@ -103,12 +103,13 @@ function MoveSelection(gamestate, initial)
                         if (gamestate.getField(moves[i][0]).getSegment() == segment)
                         {
                             moves.splice(i, 1)
+                            res = 2
                         }
                     }
                     delete segmentsUsed[segment]
                 }
                 selected = id
-                return 2
+                return res
             }
         }
         else
