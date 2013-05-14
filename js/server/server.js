@@ -2,11 +2,14 @@
 
 // Atlantis game server implementation
 
+var crypto      = require('crypto')
 var fs          = require('fs')
 var url         = require('url')
 var Sequelize   = require('sequelize')
 var socket_io   = require('socket.io')
+
 var GameState   = require("../common/GameState.js")
+var rmd         = require("../common/RIPEMD-160.js")
 
 var orm         = { }       // Sequelize ORM constructors
 var games       = { }       // currently loaded games
@@ -45,6 +48,7 @@ function retrieveGame(game_id, new_client, callback)
     }).success(function(game) {
         if (!game) {
             callback(new Error("Game not found"), null)
+            return
         }
         if (games[game_id])
         {
@@ -52,8 +56,11 @@ function retrieveGame(game_id, new_client, callback)
         }
         else
         {
-            game.state   = GameState(JSON.parse(game.serializedState))
-            game.clients = []
+            var obj = JSON.parse(game.serializedState)
+            game.ownerKey    = obj.ownerKey
+            game.playerKeys  = obj.playerKeys
+            game.state       = GameState(obj)
+            game.clients     = []
             games[game_id] = game
             console.log("Game " + game_id + " cached.")
         }
@@ -64,7 +71,10 @@ function retrieveGame(game_id, new_client, callback)
 
 function storeGame(game, callback)
 {
-    game.serializedState = JSON.stringify(game.state.objectify())
+    var obj = game.state.objectify()
+    obj.ownerKey   = game.ownerKey
+    obj.playerKeys = game.playerKeys
+    game.serializedState = JSON.stringify(obj)
     game.save().success(function() {
         callback(null)
     }).error(function(err) {
@@ -75,6 +85,7 @@ function storeGame(game, callback)
 function onConnection(client)
 {
     var game_id = null
+    var player_index = -1
 
     client.on('create', function(game) {
 
@@ -88,8 +99,14 @@ function onConnection(client)
         else
         {
             game = gamestate.objectify()
+            game.ownerKey = crypto.randomBytes(20).toString("hex")
+            game.playerKeys = []
+            for (var i = 0; i < gamestate.getPlayers().length; ++i)
+            {
+                game.playerKeys.push(crypto.randomBytes(20).toString("hex"))
+            }
             orm.Game.create({
-                serializedState: JSON.stringify(gamestate.objectify())
+                serializedState: JSON.stringify(game)
             }).success(function(game) {
                 console.log('Created game "' + game.id + '".')
                 client.emit('created', game.id)
@@ -100,7 +117,7 @@ function onConnection(client)
         }
     })
 
-    client.on('join', function (new_game_id) {
+    client.on('join', function (new_game_id, player_key) {
 
         new_game_id = parseInt(new_game_id)
         if (!(new_game_id > 0)) return
@@ -119,7 +136,15 @@ function onConnection(client)
             else
             {
                 game_id = new_game_id
-                client.emit('game', game.state.objectify())
+                for (var i = 0; i < game.playerKeys.length; ++i)
+                {
+                    if (game.playerKeys[i] == player_key)
+                    {
+                        player_index = i
+                        break
+                    }
+                }
+                client.emit('game', game.state.objectify(), player_index)
             }
         })
     })
@@ -137,6 +162,11 @@ function onConnection(client)
             if (game.over)
             {
                 client.emit('error-message', "Game is over!")
+            }
+            else
+            if (player_index < 0 || game.state.getNextPlayer() != player_index)
+            {
+                client.emit('error-message', "It's not your turn!")
             }
             else
             {
@@ -170,6 +200,11 @@ function onConnection(client)
             if (game.over)
             {
                 client.emit('error-message', "Game is over!")
+            }
+            else
+            if (player_index < 0 || game.state.getNextPlayer() != player_index)
+            {
+                client.emit('error-message', "It's not your turn!")
             }
             else
             {
@@ -252,9 +287,14 @@ exports.listen = function(server, store)
 
     // Create database schema:
     orm.Game = sequelize.define("Game", {
-        id:              { type: Sequelize.INTEGER, allowNull: false, autoIncrement: true },
+        id:              { type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true },
         serializedState: { type: Sequelize.TEXT,    allowNull: false                      },
         over:            { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false } })
+
+    orm.User = sequelize.define("User", {
+        username: { type: Sequelize.TEXT, allowNull: false, primaryKey: true },
+        salt:     { type: Sequelize.TEXT },
+        passkey:  { type: Sequelize.TEXT } })
 
     sequelize.sync().done(function() {
         socket_io.listen(server).sockets.on('connection', onConnection)
@@ -280,5 +320,81 @@ exports.listGames = function(callback)
                 "online":     games[row.id] ? games[row.id].clients.length : 0 })
         }
         callback(null, gamelist)
+    })
+}
+
+exports.createAccount = function(username, salt, passkey, callback)
+{
+    if ( typeof username != "string" ||
+         typeof salt     != "string" ||
+         typeof passkey  != "string" || !passkey.match(/^[0-9a-f]{40}$/) )
+    {
+        callback(new Error("invalid arguments"))
+        return
+    }
+
+    username = username.toLowerCase()
+    if (!username.match(/^[a-z][a-z0-9]*$/))
+    {
+        callback(new Error("username must start with a letter, and may contain only ASCII letters and digits"))
+        return
+    }
+
+    orm.User.find(username).success(function(user){
+        if (user)
+        {
+            callback(new Error("username is already in use"))
+        }
+        else
+        {
+            orm.User.create({ username: username, salt: salt, passkey: passkey }).success(function(user) {
+                callback(null, user.username)
+            })
+        }
+    })
+}
+
+exports.getAuthChallenge = function(username, callback)
+{
+    orm.User.find(username.toLowerCase()).success(function(user){
+        if (!user)
+        {
+            callback(new Error("user not found"))
+        }
+        else
+        {
+            // FIXME: nonce is just a random number for now.  This doesn't protect against replay attacks!
+            var nonce = crypto.randomBytes(20).toString("hex")
+            callback(null, user.username, user.salt, nonce)
+        }
+    })
+}
+
+exports.authenticate = function(username, nonce, proof, callback)
+{
+    if ( typeof username != "string" ||
+         typeof nonce    != "string" ||
+         typeof proof    != "string" )
+    {
+        callback(new Error("invalid arguments"))
+        return
+    }
+    orm.User.find(username.toLowerCase()).success(function(user){
+        if (!user)
+        {
+            callback(new Error("user not found"))
+        }
+        else
+        {
+            // FIXME: should verify nonce was generated by the server (see above)
+            if (rmd.str(rmd.digest(nonce, rmd.vec(user.passkey))) != proof)
+            {
+                callback(new Error("invalid password"))
+            }
+            else
+            {
+                callback(null, user.username)
+            }
+        }
     })
 }

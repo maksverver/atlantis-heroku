@@ -1,19 +1,16 @@
+ !! game owner should have option to retrieve player keys after game creation!
+
 Next milestone release:
-  - maybe user accounts?
   - provide separate player URLs
-  - allow player to specify their names
+  - associate games with accounts
+  - show player names when possible
+  - clearer turn notification
   - chat support / revise transcript format to allow commentary?
   - prettify frontpage
 
-To deploy on Heroku:
-  - implement PostgreSQL storage backend (with modification time)
-
-Board canvas:
-  - option to show field coordinates
-
 Server:
  - sort/limit list of games (sort by online count first, mtime second?)
-   (move code from client into FileStorage.)
+   (move code from client to server)
 
 HTML:
   - make reset button go back only one (sub)phase or move
@@ -24,3 +21,9 @@ HTML:
 Setup mode:
   - should have a "back" button!
   - support single-player mode
+
+==> accounts:
+
+If a player opens a game URL while logged in, the game should be associated
+with his account so that he can find it again.  (Either game key if he creates
+the game, or player key if he's just a player.)

@@ -7,6 +7,7 @@ var Coords            = require("../common/Coords.js")
 
 // Global variables
 var gamestate            = null
+var my_player            = -1
 var selection            = null
 var board_canvas         = null
 var board_canvas_context = null
@@ -354,7 +355,7 @@ function parseHash(hash)
     {
         var j = hash.indexOf('&', i)
         if (j < 0) j = hash.length
-        var k = hash.indexOf('=', k)
+        var k = hash.indexOf('=', i)
         if (k >= i && k < j)
         {
             try
@@ -388,7 +389,7 @@ function updateScoreBoard()
     var elem = document.getElementById("ScoreBoard").firstChild
     var scores = gamestate.calculateScores()
     var players = gamestate.getPlayers()
-    var nextIndex = gamestate.getNextPlayer()
+    var nextIndex = gamestate.isGameOver() ? -1 :  gamestate.getNextPlayer()
     for (var i = 0; i < players.length; ++i)
     {
         while (!elem.tagName || elem.tagName.toLowerCase() != "div") elem = elem.nextSibling
@@ -433,15 +434,16 @@ function initialize()
     server = io.connect(document.location.origin)
     server.on('connection-failed', function () { alert('Connection failed!') })
     server.on('disconnected', function () { alert('Connection lost!') })
-    server.on('game', function(state) {
+    server.on('game', function(state, player_index) {
         document.getElementById("Buttons").style.display = "block"
         gamestate = GameState(state)
+        my_player = player_index
         createScoreBoard()
         createBoardCanvas()
         if (!gamestate.isGameOver())
         {
             selection = new MoveSelection(gamestate)
-            setMyTurn(true)
+            setMyTurn(my_player >= 0 && gamestate.getNextPlayer() == my_player)
         }
         else
         {
@@ -466,7 +468,7 @@ function initialize()
         if (!gamestate.isGameOver())
         {
             selection = MoveSelection(gamestate)
-            setMyTurn(true)
+            setMyTurn(my_player >= 0 && gamestate.getNextPlayer() == my_player)
         }
         else
         {
@@ -494,7 +496,7 @@ function initialize()
         }
         else
         {
-            server.emit('join', params['game'])
+            server.emit('join', params['game'], params['player'])
         }
     })
 }
