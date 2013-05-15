@@ -203,11 +203,40 @@ function onSetupComplete()
            game: gamestate.objectify() }, function(response) {
         if (response.error)
         {
-            alert("Board creation failed: " + response.error + "!")
+            alert("Game creation failed: " + response.error + "!")
         }
         else
         {
-            alert(JSON.stringify(response))
+            var div = document.getElementById('GameCreated')
+            div.style.display = 'block'
+
+            var spectator_link = document.getElementById("SpectatorLink")
+            spectator_link.href = "game.html#game=" + response.gameId
+            spectator_link.target = "game-" + response.gameId
+
+            var table = document.getElementById("PlayerLinks")
+            for (var i = 0; i < response.playerKeys.length; ++i)
+            {
+                var tr = document.createElement("tr")
+                var td = document.createElement("td")
+                var label = document.createElement("label")
+                label.className = "ColorButton"
+                label.style.backgroundColor = gamestate.getPlayer(i).color
+                td.appendChild(label)
+                var caption = document.createElement("span")
+                caption.appendChild(document.createTextNode(i + 1))
+                label.appendChild(caption)
+                td.appendChild(label)
+                tr.appendChild(td)
+                var td = document.createElement("td")
+                var a = document.createElement("a")
+                a.appendChild(document.createTextNode("Link for player " + (i + 1)))
+                a.href = "game.html#game=" + response.gameId + "&player=" + response.playerKeys[i]
+                a.target = "game-" + response.gameId + ",player-" + (i + 1)
+                td.appendChild(a)
+                tr.appendChild(td)
+                table.appendChild(tr)
+            }
         }
     })
 }

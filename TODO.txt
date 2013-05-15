@@ -1,7 +1,6 @@
- !! after setup completes, links to game + player links should be shown!
+  - publish next release?
 
 Next milestone release:
-  - provide separate player URLs
   - associate games with accounts (both "ownership" and player keys)
   - show player names when possible
   - clearer turn notification
@@ -19,5 +18,7 @@ HTML:
   - should highlight "my" player more clearly
 
 Setup mode:
-  - should have a "back" button!
+  - should have a "back" button 
   - support single-player mode
+  - add copy-to-clipboard icon to player links
+    (for n00bs that don't know how to right-click Copy Link Address)
