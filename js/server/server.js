@@ -57,7 +57,6 @@ function retrieveGame(game_id, new_client, callback)
         else
         {
             var obj = JSON.parse(game.serializedState)
-            game.ownerKey    = obj.ownerKey
             game.playerKeys  = obj.playerKeys
             game.state       = GameState(obj)
             game.clients     = []
@@ -72,7 +71,6 @@ function retrieveGame(game_id, new_client, callback)
 function storeGame(game, callback)
 {
     var obj = game.state.objectify()
-    obj.ownerKey   = game.ownerKey
     obj.playerKeys = game.playerKeys
     game.serializedState = JSON.stringify(obj)
     game.save().success(function() {
@@ -82,45 +80,45 @@ function storeGame(game, callback)
     })
 }
 
+function createGame(game, callback)
+{
+    var gamestate = GameState(game)
+    if (gamestate.getPlayers().length < 2)
+    {
+        callback(new Error("Invalid game state received!"))
+        return
+    }
+    var keys = []
+    for (var i = 0; i < gamestate.getPlayers().length; ++i)
+    {
+        keys.push(crypto.randomBytes(20).toString("hex"))
+    }
+    game = gamestate.objectify()
+    game.playerKeys = keys
+    orm.Game.create({
+        serializedState: JSON.stringify(game)
+    }).success(function(game) {
+        console.log('Created game "' + game.id + '".')
+        callback(null, game.id, keys)
+    }).error(function(err) {
+        console.log("Failed to store game: " + err)
+        callback(new Error("Failed to store game!"))
+    })
+}
+
 function onConnection(client)
 {
     var game_id = null
     var player_index = -1
 
-    client.on('create', function(game) {
-
-        if (game_id) return
-
-        var gamestate = GameState(game)
-        if (gamestate.getPlayers().length < 2)
-        {
-            client.emit('error-message', "Invalid game state received!")
-        }
-        else
-        {
-            game = gamestate.objectify()
-            game.ownerKey = crypto.randomBytes(20).toString("hex")
-            game.playerKeys = []
-            for (var i = 0; i < gamestate.getPlayers().length; ++i)
-            {
-                game.playerKeys.push(crypto.randomBytes(20).toString("hex"))
-            }
-            orm.Game.create({
-                serializedState: JSON.stringify(game)
-            }).success(function(game) {
-                console.log('Created game "' + game.id + '".')
-                client.emit('created', game.id)
-            }).error(function(err) {
-                console.log("Failed to create game: " + err)
-                client.emit('error-message', "Could not create game!")
-            })
-        }
-    })
-
     client.on('join', function (new_game_id, player_key) {
 
         new_game_id = parseInt(new_game_id)
-        if (!(new_game_id > 0)) return
+        if (!(new_game_id > 0))
+        {
+            client.emit('error-message', "Invalid/missing game id!")
+            return
+        }
 
         retrieveGame(new_game_id, client, function(err, game) {
             if (!game)
@@ -270,11 +268,7 @@ function onConnection(client)
 exports.listen = function(server, store)
 {
     // Setup database connection:
-    if (!process.env.DATABASE_URL)
-    {
-        throw new Error("environmental variable DATABASE_URL not set")
-    }
-    var params = url.parse(process.env.DATABASE_URL, true)
+    var params = url.parse(process.env.DATABASE_URL || "sqlite://localhost/atlantis.db", true)
     var dialect = params.protocol.substring(0, params.protocol.indexOf(':'))
     var database = params.pathname.substring(params.pathname.indexOf('/') + 1)
     var username = params.auth ? params.auth.substring(0, params.auth.indexOf(':'))  : ""
@@ -398,3 +392,5 @@ exports.authenticate = function(username, nonce, proof, callback)
         }
     })
 }
+
+exports.createGame = createGame

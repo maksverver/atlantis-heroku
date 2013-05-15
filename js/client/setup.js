@@ -6,13 +6,13 @@
 
 var Coords    = require("../common/Coords.js")
 var GameState = require("../common/GameState.js")
-var client    = require("./client.js")
+var board     = require("./board.js")
+var rpc       = require("./rpc.js").rpc
 
-var onSetupComplete = null
+var gamestate = null
 
-function setup(callback)
+function initialize()
 {
-    onSetupComplete = callback
     document.getElementById('SelectBoard').style.display = 'block'
     onBoardShapeChanged()
 }
@@ -39,16 +39,15 @@ function onBoardShapeChanged()
             segments.push(segment)
         }
     }
-    client.setGameState(GameState({"segments":segments}))
-    client.createBoardCanvas()
-    client.redraw()
+    gamestate = GameState({"segments":segments})
+    board.recreate(gamestate)
+    board.redraw(gamestate)
 }
 
 function toggleSegment(field)
 {
     if (field)
     {
-        var gamestate = client.getGameState()
         var segment = gamestate.getField(field).getSegment()
         var fields = gamestate.getFields()
         for (var id in fields)
@@ -58,7 +57,7 @@ function toggleSegment(field)
                 fields[id].toggleLiving()
             }
         }
-        client.redraw()
+        board.redraw(gamestate)
     }
 }
 
@@ -66,13 +65,11 @@ function onBoardShapeSelected()
 {
     document.getElementById('SelectBoard').style.display = 'none'
     document.getElementById('CustomizeBoard').style.display = 'block'
-    client.getBoardEvents().addHandler('mousedown', toggleSegment)
+    board.getEventSource().addHandler('mousedown', toggleSegment)
 }
 
 function addPlayerStone(field_id)
 {
-    var gamestate = client.getGameState()
-
     if (!field_id) return
     field = gamestate.getField(field_id)
     if (!field.isOpen()) return
@@ -133,7 +130,7 @@ function addPlayerStone(field_id)
             }
         }
     }
-    client.redraw()
+    board.redraw(gamestate)
 
     // Assign player indices to labels
     for (var i = 0; ; ++i)
@@ -159,7 +156,6 @@ function addPlayerStone(field_id)
 function onBoardCustomized()
 {
     // Remove dead fields/segments:
-    var gamestate = client.getGameState()
     var old_segments = gamestate.getSegments()
     var new_segments = []
     for (var i = 0; i < old_segments.length; ++i)
@@ -181,29 +177,43 @@ function onBoardCustomized()
     }
     document.getElementById('CustomizeBoard').style.display = 'none'
     document.getElementById('CustomizePlayer').style.display = 'block'
-    client.getBoardEvents().removeHandler('mousedown', toggleSegment)
-    client.getBoardEvents().addHandler('mousedown', addPlayerStone)
-    client.setGameState(GameState({'segments':new_segments, "players":[]}))
-    client.createBoardCanvas()
-    client.redraw()
+    board.getEventSource().removeHandler('mousedown', toggleSegment)
+    board.getEventSource().addHandler('mousedown', addPlayerStone)
+    gamestate = GameState({'segments':new_segments, "players":[]})
+    board.recreate(gamestate)
+    board.redraw(gamestate)
 }
 
 function onStonesPlaced()
 {
-    var gamestate = client.getGameState()
     if (gamestate.getPlayers().length < 2)
     {
         alert("Place some stones first! (Minimum of two players required.)")
         return
     }
-    client.getBoardEvents().removeHandler('mousedown', addPlayerStone)
+    board.getEventSource().removeHandler('mousedown', addPlayerStone)
     document.getElementById('CustomizePlayer').style.display = 'none'
     gamestate.storeInitialState()
     onSetupComplete()
 }
 
-exports.setup                 = setup
-exports.onBoardShapeChanged   = onBoardShapeChanged
-exports.onBoardShapeSelected  = onBoardShapeSelected
-exports.onBoardCustomized     = onBoardCustomized
-exports.onStonesPlaced        = onStonesPlaced
+function onSetupComplete()
+{
+    rpc( { method: "createGame",
+           game: gamestate.objectify() }, function(response) {
+        if (response.error)
+        {
+            alert("Board creation failed: " + response.error + "!")
+        }
+        else
+        {
+            alert(JSON.stringify(response))
+        }
+    })
+}
+
+exports.initialize           = initialize
+exports.onBoardShapeChanged  = onBoardShapeChanged
+exports.onBoardShapeSelected = onBoardShapeSelected
+exports.onBoardCustomized    = onBoardCustomized
+exports.onStonesPlaced       = onStonesPlaced

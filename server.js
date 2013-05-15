@@ -61,13 +61,21 @@ app.use('/rpc', function(request, response, next) {
     case 'authenticate':
         atlantis.authenticate(request.body.username, request.body.nonce, request.body.proof, function(err, username) {
             if (username) response.cookie('username', username, { signed: true, httpOnly: true })
-            response.json({error: err ? err.message : undefined, username: username ? username : undefined })
+            response.json({ error: err ? err.message : undefined, username: username || undefined })
         })
         break
 
     case 'logOut':
         response.cookie('username')
         response.json({})
+        break
+
+    case 'createGame':
+        atlantis.createGame(request.body.game, function(err, gameId, playerKeys) {
+            response.json({ error:      err ? err.message : undefined,
+                            gameId:     gameId || undefined,
+                            playerKeys: playerKeys || undefined })
+        })
         break
 
     default:

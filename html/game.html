@@ -18,60 +18,8 @@
 </div>
 <div id="RightColumn">
   <div id="ColumnSplitter" class="Draggable"></div>
-    <div id="RightColumnContents">
-    <div id="SelectBoard" style="display:none">
-      <table>
-        <tr>
-        <th align="left">Shape</th>
-        <td align="right">
-            <select id="BoardShape" onchange="setup.onBoardShapeChanged()">
-            <option value="triangle">Triangle</option>
-            <option value="hexagon">Hexagon</option>
-            <option value="rhombus">Rhombus</option>
-            </select>
-        </td>
-        </tr>
-        <tr>
-        <th align="left">Size</th>
-        <td align="right">
-            <select id="BoardSize" onchange="setup.onBoardShapeChanged()">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            </select>
-        </td>
-        </tr>
-        <tr><th colspan="2"><input type="button" value="Continue..." onclick="setup.onBoardShapeSelected()"></th></tr>
-      </table>
-    </div>
-    <div id="CustomizeBoard" style="display:none">
-      <p>Click the board segments you want to remove.</p>
-      <input type="button" value="Continue..." onclick="setup.onBoardCustomized()">
-    </div>
-    <div id="CustomizePlayer" style="display:none">
-      <p>Place initial stones for players by selecting a color and then clicking fields on the board.</p>
-      <p>Note that the order of play is determined by the order in which stones are placed!</p>
-      <p><!--
-     --><input class="ColorButton" id="Color1" name="Color" type="radio" value="maroon"   ><label class="ColorButton" for="Color1" style="background:maroon"   ></label><!--
-     --><input class="ColorButton" id="Color2" name="Color" type="radio" value="red"      ><label class="ColorButton" for="Color2" style="background:red"      ></label><!--
-     --><input class="ColorButton" id="Color3" name="Color" type="radio" value="orange"   ><label class="ColorButton" for="Color3" style="background:orange"   ></label><!--
-     --><input class="ColorButton" id="Color4" name="Color" type="radio" value="green"    ><label class="ColorButton" for="Color4" style="background:green"    ></label><!--
-     --><input class="ColorButton" id="Color5" name="Color" type="radio" value="lime"     ><label class="ColorButton" for="Color5" style="background:lime"     ></label><!--
-     --><input class="ColorButton" id="Color6" name="Color" type="radio" value="blue"     ><label class="ColorButton" for="Color6" style="background:blue"     ></label><!--
-     --><input class="ColorButton" id="Color7" name="Color" type="radio" value="royalblue"><label class="ColorButton" for="Color7" style="background:royalblue"></label><!--
-     --><input class="ColorButton" id="Color8" name="Color" type="radio" value="purple"   ><label class="ColorButton" for="Color8" style="background:purple"   ></label><!--
-     --><input class="ColorButton" id="Color9" name="Color" type="radio" value="fuchsia"  ><label class="ColorButton" for="Color9" style="background:fuchsia"  ></label><!--
-     --><input class="ColorButton" id="Color0" name="Color" type="radio" value="white" selected><label class="WhiteColorButton" for="Color0"></label></p>
-     <p><input type="button" value="Continue..." onclick="setup.onStonesPlaced()"></p>
-  </div>
-  <div id="ScoreBoard" style="display:none">
-  <h3>Scoreboard</h3>
+  <div id="RightColumnContents">
+    <div id="ScoreBoard" style="display:none"><h3>Scoreboard</h3></div>
   </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>
