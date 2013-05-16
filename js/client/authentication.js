@@ -3,24 +3,77 @@
 var rmd = require("../common/RIPEMD-160.js")
 var rpc = require("./rpc.js").rpc
 
-function setAuthenticated(username)
-{
-    document.getElementById("Authentication").style.display  = "none"
-    document.getElementById("Authenticated").style.display = "block"
-    var elem = document.getElementById("Username")
-    while (elem.firstChild) elem.removeChild(elem.firstChild)
-    elem.appendChild(document.createTextNode(username))
-}
-
-function setUnauthenticated()
-{
-    document.getElementById("Authentication").style.display  = "block"
-    document.getElementById("Authenticated").style.display = "none"
-}
-
 function initialize()
 {
+    var html = '\
+<div id="authBar">\
+  <div id="Authentication" style="display:none"> \
+    <div id="LogInTabHandle" class="tabHandle">Log in</div> \
+    <div id="RegisterTabHandle" class="tabHandle">Register</div> \
+  </div> \
+  <div id="Authenticated" style="display:none"> \
+    <div id="AccountTabHandle" class="tabHandle">Account</div> \
+  </div> \
+  <div class="message"> </div> \
+  <div id="LogInTabBody" class="tabBody" style="display:none"> \
+    <form id="LogInForm"> \
+    <table> \
+    <tr><th><label for="AuthUsername">Username:&nbsp;</label></th><td><input id="AuthUsername" type="text"></td></tr> \
+    <tr><th><label for="AuthPassword">Password:&nbsp;</label></th><td><input id="AuthPassword" type="password"></td></tr> \
+    <tr><th></th><td><input class="button" type="submit" id="LogInButton" value="Log in"> \
+                     <input class="button" type="button" id="LogInCloseButton" value="Close"><td></tr> \
+    </table> \
+    </form> \
+  </div> \
+  <div id="RegisterTabBody" class="tabBody" style="display:none"> \
+    <form id="RegisterForm"> \
+    <table> \
+    <tr><th align="right"><label for="CreateUsername">Username:&nbsp;<label></th><td><input id="CreateUsername" type="text"></td></tr> \
+    <tr><th align="right"><label for="CreatePassword">Password:&nbsp;</label></th><td><input id="CreatePassword" type="password"></td></tr> \
+    <tr><th align="right"><label for="CreatePassword2">Confirmation:&nbsp;</label></th><td><input id="CreatePassword2" type="password"></td></tr> \
+    <tr><th></th><td><input class="button" type="submit" id="RegisterButton" value="Create account"> \
+                     <input class="button" type="button" id="RegisterCloseButton" value="Close"><td></tr> \
+    </table> \
+    </form> \
+  </div> \
+  <div id="AccountTabBody" class="tabBody" style="display:none"> \
+    <p>Logged in as <span id="Username">nobody</span>.</p> \
+    <table><tr><td><input class="button" type="button" id="LogOutButton" value="Log out"> \
+                   <input class="button" type="button" id="AccountCloseButton" value="Close"></td></tr></table> \
+  </div> \
+</div>'
+    document.body.innerHTML = html + document.body.innerHTML
+
+    document.getElementById("LogInTabHandle").onclick = function() {
+        setActiveTab("LogIn")
+        document.getElementById("AuthUsername").focus()
+    }
+    document.getElementById("RegisterTabHandle").onclick = function() {
+        setActiveTab("Register")
+        document.getElementById("CreateUsername").focus()
+    }
+    document.getElementById("AccountTabHandle").onclick = function() {
+        setActiveTab("Account")
+    }
+    document.getElementById("LogInCloseButton").onclick = 
+    document.getElementById("RegisterCloseButton").onclick =
+    document.getElementById("AccountCloseButton").onclick = function() {
+        setActiveTab()
+    }
+    document.getElementById("LogInForm").onsubmit = function() {
+        logIn()
+        return false
+    }
+    document.getElementById("RegisterForm").onsubmit = function() {
+        createAccount()
+        return false
+    }
+    document.getElementById("LogOutButton").onclick= function() {
+        logOut()
+        return false
+    }
     rpc({"method": "getUsername"}, function(response) {
+        setActiveTab()
         if (response.username)
         {
             setAuthenticated(response.username)
@@ -31,6 +84,37 @@ function initialize()
         }
     })
 }
+
+function setAuthenticated(username)
+{
+    document.getElementById("Authentication").style.display = "none"
+    document.getElementById("Authenticated").style.display = "inline-block"
+
+    var elem = document.getElementById("Username")
+    while (elem.firstChild) elem.removeChild(elem.firstChild)
+    elem.appendChild(document.createTextNode(username))
+}
+
+function setUnauthenticated()
+{
+    document.getElementById("Authentication").style.display  = "inline-block"
+    document.getElementById("Authenticated").style.display = "none"
+}
+
+function setActiveTab(which)
+{
+    var tabs = [ "LogIn", "Register", "Account" ]
+    for (var i = 0; i < tabs.length; ++i)
+    {
+        var value = tabs[i] == which
+        document.getElementById(tabs[i] + "TabHandle").className
+            = value ? "tabHandle active" : "tabHandle"
+        document.getElementById(tabs[i] + "TabBody").style.display
+            = value ? "block" : "none"
+    }
+}
+
+
 
 function clearPasswordFields()
 {
@@ -82,6 +166,7 @@ function createAccount()
             {
                 setAuthenticated(response.username)
                 clearPasswordFields()
+                setActiveTab()
             }
         })
     }
@@ -128,6 +213,7 @@ function logIn(username, password)
                     {
                         setAuthenticated(response.username)
                         clearPasswordFields()
+                        setActiveTab()
                     }
                 })
             }
@@ -138,9 +224,8 @@ function logIn(username, password)
 function logOut()
 {
     rpc({"method": "logOut"}, setUnauthenticated)
+    setActiveTab()
 }
 
 exports.initialize    = initialize
-exports.createAccount = createAccount
-exports.logIn         = logIn
-exports.logOut        = logOut
+

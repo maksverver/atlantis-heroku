@@ -1,11 +1,9 @@
 body {
-    margin:     0;
-    padding:    0;
     overflow:   hidden;
 }
 
 canvas#Board {
-    border: 1px solid blue;
+    border: 2px solid #4060a0;
     background: #80a0ff;
     margin: 4px;
 }

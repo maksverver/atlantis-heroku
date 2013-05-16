@@ -2,39 +2,10 @@
 <html>
 <head>
 <link rel="stylesheet" type="text/css" href="style/base.css">
+<link rel="stylesheet" type="text/css" href="style/auth.css">
 <title>Atlantis games</title>
 </head>
-<body onload="auth.initialize()">
-
-<div id="Authenticated" style="display:none">
-Logged in as <b id="Username">nobody</b> (<span class="anchor" onclick="return !!auth.logOut()">log out</span>).
-</div>
-
-<table align="center" id="Authentication" style="display:none">
-<tr><td valign="top">
-    <h4>Log in</h4>
-    <form onsubmit="return !!auth.logIn()">
-    <table>
-    <tr><th><label for="AuthUsername">Username:&nbsp;</label></th><td><input id="AuthUsername" type="text"></td></tr>
-    <tr><th><label for="AuthPassword">Password:&nbsp;</label></th><td><input id="AuthPassword" type="password"></td></tr>
-    <tr><th></th><td><input type="submit" value="Log in"><td></tr>
-    </table>
-    </form>
-</td>
-<td style="width:2px;overflow:hidden;background:#eee"></td>
-<td valign="top">
-    <h4>Create new account</h4>
-    <form onsubmit="return !!auth.createAccount()">
-    <table>
-    <tr><th align="right"><label for="CreateUsername">Username:&nbsp;<label></th><td><input id="CreateUsername" type="text"></td></tr>
-    <tr><th align="right"><label for="CreatePassword">Password:&nbsp;</label></th><td><input id="CreatePassword" type="password"></td></tr>
-    <tr><th align="right"><label for="CreatePassword2">Confirm password:&nbsp;</label></th><td><input id="CreatePassword2" type="password"></td></tr>
-    <tr><th></th><td><input type="submit" value="Create account"><td></tr>
-    </table>
-    </form>
-</td></tr>
-</table>
-
+<body onload="require('./js/client/authentication.js').initialize()">
 <h1>Active Atlantis games</h1>
 <table id="GamesList">
 <tr><th>Game ID</th><th>Clients</th><th>Last&nbsp;move</th></tr>
@@ -43,7 +14,6 @@ Logged in as <b id="Username">nobody</b> (<span class="anchor" onclick="return !
 <script src="require.js"></script>
 <script>
 var onGamesList = require("./js/client/gameslist.js").onGamesList
-var auth = require("./js/client/authentication.js")
 </script>
 <script src="listGames/?callback=onGamesList"></script>
 </body>

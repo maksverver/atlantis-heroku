@@ -2,10 +2,11 @@
 <html>
 <head>
 <link rel="stylesheet" type="text/css" href="style/base.css">
+<link rel="stylesheet" type="text/css" href="style/auth.css">
 <link rel="stylesheet" type="text/css" href="style/game.css">
 <title>Atlantis game</title>
 </head>
-<body onload="client.initialize();layout.initialize()" onresize="layout.resize()">
+<body onload="require('./js/client/authentication.js').initialize();layout.initialize();client.initialize()" onresize="layout.resize()">
 
 <div id="LeftColumn">
   <div id="Buttons" style="display:none"><!--
