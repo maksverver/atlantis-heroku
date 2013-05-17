@@ -17,11 +17,14 @@ var games       = { }       // currently loaded games
 function removeClient(game_id, client)
 {
     var clients = games[game_id].clients
-    for (var i = 0; i < clients.length; ++i)
+    if (client)
     {
-        if (clients[i] === client)
+        for (var i = 0; i < clients.length; ++i)
         {
-            clients.splice(i--, 1)
+            if (clients[i] === client)
+            {
+                clients.splice(i--, 1)
+            }
         }
     }
     if (clients.length == 0)
@@ -390,6 +393,44 @@ exports.authenticate = function(username, nonce, proof, callback)
                 callback(null, user.username)
             }
         }
+    })
+}
+
+exports.storePlayerKey = function(username, game_id, player_key, store, callback)
+{
+    if (!username)
+    {
+        callback(new Error("not logged in"))
+        return
+    }
+    orm.User.find(username.toLowerCase()).success(function(user){
+        if (!user)
+        {
+            callback(new Error("user not found"))
+            return
+        }
+
+        retrieveGame(game_id, null, function(err, game) {
+            if (err)
+            {
+                callback(err)
+                return
+            }
+            var numKeys = game.playerKeys.length
+            for (var player = 0; player < numKeys ; ++player)
+            {
+                if (game.playerKeys[player] === player_key) break
+            }
+            removeClient(game_id)  // frees game if no other clients are connected
+            if (player == game.playerKeys.length)
+            {
+                callback(new Error("invalid player key"))
+                return
+            }
+            callback(null, false)
+            // TODO: look up association in database
+            // TODO: check if typeof(store) == 'boolean' and if so, change state
+        })
     })
 }
 

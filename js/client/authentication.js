@@ -3,10 +3,13 @@
 var rmd = require("../common/RIPEMD-160.js")
 var rpc = require("./rpc.js").rpc
 
+var username = null   // authenticated username
+var change_callbacks = []
+
 function initialize()
 {
     var html = '\
-<div id="authBar">\
+<div id="AuthBar">\
   <div id="Authentication" style="display:none"> \
     <div id="LogInTabHandle" class="tabHandle">Log in</div> \
     <div id="RegisterTabHandle" class="tabHandle">Register</div> \
@@ -14,7 +17,7 @@ function initialize()
   <div id="Authenticated" style="display:none"> \
     <div id="AccountTabHandle" class="tabHandle">Account</div> \
   </div> \
-  <div class="message"> </div> \
+  <div id="AuthMessage"></div> \
   <div id="LogInTabBody" class="tabBody" style="display:none"> \
     <form id="LogInForm"> \
     <table> \
@@ -85,20 +88,30 @@ function initialize()
     })
 }
 
-function setAuthenticated(username)
+function setAuthenticated(new_username)
 {
+    username = new_username
     document.getElementById("Authentication").style.display = "none"
     document.getElementById("Authenticated").style.display = "inline-block"
 
     var elem = document.getElementById("Username")
     while (elem.firstChild) elem.removeChild(elem.firstChild)
     elem.appendChild(document.createTextNode(username))
+
+    for (var i in change_callbacks)
+    {
+        change_callbacks[i](username)
+    }
 }
 
 function setUnauthenticated()
 {
     document.getElementById("Authentication").style.display  = "inline-block"
     document.getElementById("Authenticated").style.display = "none"
+    for (var i in change_callbacks)
+    {
+        change_callbacks[i](null)
+    }
 }
 
 function setActiveTab(which)
@@ -223,9 +236,25 @@ function logIn(username, password)
 
 function logOut()
 {
-    rpc({"method": "logOut"}, setUnauthenticated)
+    rpc({"method": "logOut"}, function(response) {
+        setUnauthenticated()
+    })
     setActiveTab()
 }
 
-exports.initialize    = initialize
+function setContent(child_elem)
+{
+    var elem = document.getElementById("AuthMessage")
+    while (elem.firstChild) elem.removeChild(elem.firstChild)
+    elem.appendChild(child_elem)
+}
 
+function onChange(callback)
+{
+    change_callbacks.push(callback)
+}
+
+exports.initialize    = initialize
+exports.getUsername   = function() { return username }
+exports.setContent    = setContent
+exports.onChange      = onChange

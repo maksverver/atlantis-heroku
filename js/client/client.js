@@ -3,9 +3,12 @@
 var GameState         = require("../common/GameState.js")
 var MoveSelection     = require("../common/MoveSelection.js")
 var Coords            = require("../common/Coords.js")
+var auth              = require("./authentication.js")
 var board             = require("./board.js")
+var rpc               = require("./rpc.js").rpc
 
 // Global variables
+var params               = {}
 var gamestate            = null
 var my_player            = -1
 var selection            = null
@@ -116,6 +119,7 @@ function parseHash(hash)
     return params
 }
 
+/*
 function formatHash(obj)
 {
     var hash = "#"
@@ -126,6 +130,7 @@ function formatHash(obj)
     }
     return hash
 }
+*/
 
 function updateScoreBoard()
 {
@@ -168,10 +173,41 @@ function createScoreBoard()
     updateScoreBoard()
 }
 
+function onAuthChange(username)
+{
+    if (!username)
+    {
+        auth.setContent(document.createTextNode("Log in to associate this game with your account."))
+    }
+    else
+    {
+        auth.setContent(document.createTextNode(""))
+        rpc({
+            "method":    "storePlayerKey",
+            "gameId":    params.game,
+            "playerKey": params.player
+        }, function(response) {
+            if (response.error)
+            {
+                alert(response.error)
+                return
+            }
+            if (response.success)
+            {
+                auth.setContent(document.createTextNode("This game is tied to your account."))
+            }
+            else
+            {
+                auth.setContent(document.createTextNode("This game is not yet tied to your account."))
+            }
+        })
+    }
+}
+
 function initialize()
 {
     // Parse parameters passed in URL hash:
-    var params = parseHash(document.location.hash)
+    params = parseHash(document.location.hash)
 
     // Connect to server
     server = io.connect(document.location.origin)
@@ -187,6 +223,13 @@ function initialize()
         {
             selection = new MoveSelection(gamestate)
             setMyTurn(my_player >= 0 && gamestate.getNextPlayer() == my_player)
+
+            if (my_player >= 0)
+            {
+                // allow player to associate the game with his account
+                onAuthChange(auth.getUsername())
+                auth.onChange(onAuthChange)
+            }
         }
         else
         {
@@ -226,6 +269,7 @@ function initialize()
         // NOTE: this fires on automatic reconnects too!
         if (connected++ == 0) server.emit('join', params['game'], params['player'])
     })
+    auth.initialize()
 }
 
 exports.onMoveButton      = onMoveButton

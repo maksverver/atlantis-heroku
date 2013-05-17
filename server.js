@@ -78,6 +78,13 @@ app.use('/rpc', function(request, response, next) {
         })
         break
 
+    case 'storePlayerKey':
+        atlantis.storePlayerKey( request.signedCookies.username, request.body.gameId,
+                                 request.body.playerKey, request.body.store, function(err, result) {
+            response.json({ error: err ? err.message : undefined, result: result || undefined })
+        })
+        break
+
     default:
         response.send(403)
     }

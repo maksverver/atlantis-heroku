@@ -62,3 +62,19 @@ Response:
 { error:        "human-readable error message",
   gameId:       123,
   playerKeys:   ["xxxx","yyyy","zzzz"] }  /* array of strings; one for each player */
+
+
+Request:
+{ method:       "storePlayerKey",
+  gameId:       123,
+  playerKey:    "xyzzy",
+  store:        true  /* optional */ }
+Response:
+{ error:        "human-readable error message",
+  result:       true }
+
+Stores the given game key at the current user account.  Returns an error if the
+game does not exist, or the user is not logged in.  Otherwise, either stores or
+removes the key with this account (depending the value of `store`) or just queries
+the current state (if `store` is omitted).  The respone result indicates whether
+or not the key is now stored in the account.
