@@ -5,16 +5,34 @@
 <link rel="stylesheet" type="text/css" href="style/auth.css">
 <title>Atlantis games</title>
 </head>
-<body onload="require('./js/client/authentication.js').initialize()">
-<h1>Active Atlantis games</h1>
-<table id="GamesList">
-<tr><th>Game ID</th><th>Clients</th><th>Last&nbsp;move</th></tr>
+<body onload="require('./js/client/authentication.js').initialize();gameslist.initialize()">
+<h1>Your games</h1>
+<p id="NotLoggedIn">Log in to see your games.</p>
+<div id="LoggedIn">
+<table id="MyGamesList">
+  <thead>
+    <tr><th>Game ID</th><th>Clients</th><th>Last&nbsp;updated</th><th>Next&nbsp;player</th><th>Your player</th></tr>
+  </thead>
+  <tbody>
+  </tbody>
 </table>
+<a href="#" onclick="gameslist.updateMyGamesList();return false">Update list...</a>
+</div>
+
+<h1>All games</h1>
+<table id="GamesList">
+  <thead>
+    <tr><th>Game ID</th><th>Clients</th><th>Last&nbsp;updated</th><th>Next&nbsp;player</th></tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+<a href="#" onclick="gameslist.updateGamesList();return false">Update list...</a>
+
 <p><a href="setup.html">Set up a new game board...</a></p>
 <script src="require.js"></script>
 <script>
-var onGamesList = require("./js/client/gameslist.js").onGamesList
+var gameslist = require("./js/client/gameslist.js")
 </script>
-<script src="listGames/?callback=onGamesList"></script>
 </body>
 </html>

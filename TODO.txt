@@ -1,15 +1,16 @@
   - publish next release?
+  - associate games with owners (and allow retrieval of keys)
 
 Next milestone release:
-  - associate games with accounts (both "ownership" and player keys)
   - show player names when possible
-  - clearer turn notification
+  - clearer turn notification:
+     - on gameslist, games where it is my turn should be sorted to top
+     - in game, the controlling player should be more visible
+     - make sound / update title bar when it is your turn
+
+Next milestone release:
   - chat support / revise transcript format to allow commentary?
   - prettify frontpage
-
-Server:
- - sort/limit list of games (sort by online count first, mtime second?)
-   (move code from client to server)
 
 HTML:
   - make reset button go back only one (sub)phase/move

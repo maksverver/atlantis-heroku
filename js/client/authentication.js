@@ -127,8 +127,6 @@ function setActiveTab(which)
     }
 }
 
-
-
 function clearPasswordFields()
 {
     document.getElementById("CreatePassword").value = ""

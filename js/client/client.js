@@ -175,6 +175,46 @@ function createScoreBoard()
 
 function onAuthChange(username)
 {
+    function storePlayerKey(store)
+    {
+        rpc({ "method":    "storePlayerKey",
+              "gameId":    params.game,
+              "playerKey": params.player,
+              "store":     store
+            }, onKeyStored)
+    }
+
+    function onKeyStored(response)
+    {
+        if (response.error)
+        {
+            alert(response.error)
+            return
+        }
+        if (response.result)
+        {
+            var span = document.createElement('span')
+            span.appendChild(document.createTextNode("This game is tied to your account ("))
+            var a = document.createElement('a')
+            a.appendChild(document.createTextNode("release player key"))
+            a.onclick = function() { storePlayerKey(false) }
+            span.appendChild(a)
+            span.appendChild(document.createTextNode(")."))
+            auth.setContent(span)
+        }
+        else
+        {
+            var span = document.createElement('span')
+            span.appendChild(document.createTextNode("This game is not yet tied to your account ("))
+            var a = document.createElement('a')
+            a.appendChild(document.createTextNode("store player key"))
+            a.onclick = function() { storePlayerKey(true) }
+            span.appendChild(a)
+            span.appendChild(document.createTextNode(")."))
+            auth.setContent(span)
+        }
+    }
+
     if (!username)
     {
         auth.setContent(document.createTextNode("Log in to associate this game with your account."))
@@ -182,25 +222,7 @@ function onAuthChange(username)
     else
     {
         auth.setContent(document.createTextNode(""))
-        rpc({
-            "method":    "storePlayerKey",
-            "gameId":    params.game,
-            "playerKey": params.player
-        }, function(response) {
-            if (response.error)
-            {
-                alert(response.error)
-                return
-            }
-            if (response.success)
-            {
-                auth.setContent(document.createTextNode("This game is tied to your account."))
-            }
-            else
-            {
-                auth.setContent(document.createTextNode("This game is not yet tied to your account."))
-            }
-        })
+        storePlayerKey()
     }
 }
 

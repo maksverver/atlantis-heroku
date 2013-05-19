@@ -1,8 +1,54 @@
 "use strict"
 
-function onGamesList(games)
+var auth = require('./authentication.js')
+var rpc = require('./rpc.js').rpc
+
+function onAuthChange(username)
 {
-    var table = document.getElementById("GamesList")
+    document.getElementById("LoggedIn").style.display = username ? "block" : "none"
+    document.getElementById("NotLoggedIn").style.display = username ? "none" : "block"
+    if (username)
+    {
+        updateMyGamesList()
+    }
+}
+
+function initialize()
+{
+    updateGamesList()
+    onAuthChange(auth.getUsername())
+    auth.onChange(onAuthChange)
+}
+
+function updateGamesList()
+{
+    rpc({ method: 'listGames' }, function(response) {
+        if (response.error)
+        {
+            alert(response.error)
+            return
+        }
+        onGamesList(document.getElementById("GamesList"), response.games)
+    })
+}
+
+function updateMyGamesList()
+{
+    rpc({ method: 'listMyGames' }, function(response) {
+        if (response.error)
+        {
+            alert(response.error)
+            return
+        }
+        onGamesList(document.getElementById("MyGamesList"), response.games)
+    })
+}
+
+function onGamesList(table, games)
+{
+    var tbody = table.firstChild
+    while (tbody.tagName != "TBODY") tbody = tbody.nextSibling
+    while (tbody.firstChild) tbody.removeChild(tbody.firstChild)
 
     for (var i in games)
     {
@@ -22,17 +68,19 @@ function onGamesList(games)
         var game = games[i]
 
         var tr = document.createElement("tr")
-        table.appendChild(tr)
+        tbody.appendChild(tr)
 
         // Game ID
         var td = document.createElement("td")
-        td.style.fontFamily = "mono";
+        td.appendChild(document.createTextNode(game.gameId))
+        td.appendChild(document.createTextNode(" ("))
         var a = document.createElement("a")
-        a.href = "game.html#game=" + encodeURIComponent(game.id)
-        a.target = "game-" + game.id
-        a.appendChild(document.createTextNode(game.id))
+        a.href = "game.html#game=" + encodeURIComponent(game.gameId)
+        a.target = "game-" + game.gameId
+        a.appendChild(document.createTextNode('view'))
         td.style.textAlign = "center"
         td.appendChild(a)
+        td.appendChild(document.createTextNode(")"))
         tr.appendChild(td)
 
         // Online client count:
@@ -47,11 +95,30 @@ function onGamesList(games)
         td.appendChild(document.createTextNode(game.updatedAt))
         tr.appendChild(td)
 
-        // Finished time
+        // Next player
         var td = document.createElement("td")
-        td.appendChild(document.createTextNode(game.over ? "game over" : "in progress"))
+        td.style.textAlign = "center";
+        td.appendChild(document.createTextNode(game.nextPlayer < 0 ? "game over" : game.nextPlayer + 1))
         tr.appendChild(td)
+
+        // My player
+        if (typeof game.myPlayer != 'undefined')
+        {
+            var td = document.createElement("td")
+            td.appendChild(document.createTextNode(game.myPlayer + 1))
+            td.appendChild(document.createTextNode(" ("))
+            var a = document.createElement("a")
+            a.href = "game.html#game=" + encodeURIComponent(game.gameId) + "&player=" + encodeURIComponent(game.myKey)
+            a.target = "game-" + game.gameId + ",player-" + (game.myPlayer + 1)
+            a.appendChild(document.createTextNode('play'))
+            td.style.textAlign = "center"
+            td.appendChild(a)
+            td.appendChild(document.createTextNode(")"))
+            tr.appendChild(td)
+        }
     }
 }
 
-exports.onGamesList = onGamesList
+exports.updateGamesList   = updateGamesList
+exports.updateMyGamesList = updateMyGamesList
+exports.initialize        = initialize

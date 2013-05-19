@@ -14,24 +14,6 @@ app.use('/js/client', express.static(__dirname + '/js/client'))
 app.use('/rpc', express.bodyParser())
 app.use('/rpc', express.cookieParser(crypto.randomBytes(20).toString("hex")))
 
-app.use('/listGames', function(request, response, next) {
-    if (url.parse(request.url).pathname != "/" || request.method != "GET")
-    {
-        return next()
-    }
-    atlantis.listGames(function(err, games) {
-        if (err)
-        {
-            console.log("listGames failed: " + err)
-            response.jsonp({error: err})
-        }
-        else
-        {
-            response.jsonp(games)
-        }
-    })
-})
-
 app.use('/rpc', function(request, response, next) {
 
     if (url.parse(request.url).pathname != "/" || request.method != "POST")
@@ -81,7 +63,19 @@ app.use('/rpc', function(request, response, next) {
     case 'storePlayerKey':
         atlantis.storePlayerKey( request.signedCookies.username, request.body.gameId,
                                  request.body.playerKey, request.body.store, function(err, result) {
-            response.json({ error: err ? err.message : undefined, result: result || undefined })
+            response.json({ error: err ? err.message : undefined, result: result })
+        })
+        break
+
+    case 'listGames':
+        atlantis.listGames(function(err, games) {
+            response.json({error: err ? err.message : undefined, games: games})
+        })
+        break
+
+    case 'listMyGames':
+        atlantis.listMyGames(request.signedCookies.username, function(err, games) {
+            response.json({error: err ? err.message : undefined, games: games})
         })
         break
 
