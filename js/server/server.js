@@ -5,14 +5,28 @@
 var crypto      = require('crypto')
 var fs          = require('fs')
 var url         = require('url')
-var Sequelize   = require('sequelize')
+var pg          = require('pg').native
 var socket_io   = require('socket.io')
 
 var GameState   = require("../common/GameState.js")
 var rmd         = require("../common/RIPEMD-160.js")
 
-var orm         = { }       // Sequelize ORM constructors
+var database   = null       // PostgreSQL database handle
 var games       = { }       // currently loaded games
+
+function propagateError(callback, onSuccess)
+{
+    return function(err, result) {
+        if (err)
+        {
+            callback(err)
+        }
+        else
+        {
+            onSuccess(result)
+        }
+    }
+}
 
 function removeClient(game_id, client)
 {
@@ -45,42 +59,37 @@ function retrieveGame(game_id, new_client, callback)
 
     /* FIXME: there is sort of a race condition here. Multiple clients
               might call retrieveGame() at the same time! */
-
-    orm.Game.find(game_id).error(function(err) {
-        callback(err, null)
-    }).success(function(game) {
-        if (!game) {
+    database.query( 'SELECT "game_id", "serialized_state", "over" FROM "Games" WHERE game_id = $1',
+                    [game_id], propagateError(callback, function(result) {
+        if (result.rows.length < 1)
+        {
             callback(new Error("Game not found"), null)
             return
         }
-        if (games[game_id])
+        var row = result.rows[0]
+        var obj = JSON.parse(row.serialized_state)
+        var game = games[game_id]  // handle race-condition
+        if (!game)
         {
-            game = games[game_id]   // handle race-condition
-        }
-        else
-        {
-            var obj = JSON.parse(game.serializedState)
-            game.playerKeys  = obj.playerKeys
-            game.state       = GameState(obj)
-            game.clients     = []
+            game = { gameId:     row.game_id,
+                     state:      GameState(obj),
+                     over:       row.over,
+                     playerKeys: obj.playerKeys,
+                     clients:    [ ] }
             games[game_id] = game
             console.log("Game " + game_id + " cached.")
         }
         if (new_client) game.clients.push(new_client)
         callback(null, game)
-    })
+    }))
 }
 
 function storeGame(game, callback)
 {
     var obj = game.state.objectify()
     obj.playerKeys = game.playerKeys
-    game.serializedState = JSON.stringify(obj)
-    game.save().success(function() {
-        callback(null)
-    }).error(function(err) {
-        callback(err)
-    })
+    database.query( 'UPDATE "Games" SET "serialized_state"=$2, "over"=$3, "updated_at"=NOW() WHERE game_id = $1',
+                    [game.gameId, JSON.stringify(obj), game.over], propagateError(callback, function(result) { callback(null) }))
 }
 
 function createGame(game, callback)
@@ -98,15 +107,13 @@ function createGame(game, callback)
     }
     game = gamestate.objectify()
     game.playerKeys = keys
-    orm.Game.create({
-        serializedState: JSON.stringify(game)
-    }).success(function(game) {
-        console.log('Created game "' + game.id + '".')
-        callback(null, game.id, keys)
-    }).error(function(err) {
-        console.log("Failed to store game: " + err)
-        callback(new Error("Failed to store game!"))
-    })
+
+    database.query( 'INSERT INTO "Games" ("serialized_state") VALUES ($1) RETURNING("game_id")', [JSON.stringify(game)],
+                    propagateError(callback, function(result) {
+        var game_id = result.rows[0].game_id
+        console.log('Created game "' + game_id + '".')
+        callback(null, game_id, keys)
+    }))
 }
 
 function onConnection(client)
@@ -245,7 +252,7 @@ function onConnection(client)
                     storeGame(game, function(err) {
                         if (err)
                         {
-                            Console.log("Failed to store game " + game_id + ": " + err)
+                            console.log("Failed to store game " + game_id + ": " + err)
                             client.emit('error-message', "Failed to store turn!")
                             // ... continue anyway because we have the game cached
                         }
@@ -270,51 +277,32 @@ function onConnection(client)
 
 exports.listen = function(server, store)
 {
-    // Setup database connection:
-    var params = url.parse(process.env.DATABASE_URL || "sqlite://localhost/atlantis.db", true)
-    var dialect = params.protocol.substring(0, params.protocol.indexOf(':'))
-    var database = params.pathname.substring(params.pathname.indexOf('/') + 1)
-    var username = params.auth ? params.auth.substring(0, params.auth.indexOf(':'))  : ""
-    var password = params.auth ? params.auth.substring(params.auth.indexOf(':') + 1) : ""
-    var sequelize = new Sequelize( database, username, password, {
-        host: params.hostname, port: params.port, dialect: dialect,
-        native: true,      /* this is used by PostgreSQL in order to support SSL */
-        storage: database, /* this is used by SQLite as the database file path */
-        define: { charset: "utf8" } })
-
-    // Create database schema:
-    orm.Game = sequelize.define("Game", {
-        id:              { type: Sequelize.INTEGER, allowNull: false, primaryKey: true, autoIncrement: true },
-        serializedState: { type: Sequelize.TEXT,    allowNull: false                      },
-        over:            { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false } })
-
-    orm.User = sequelize.define("User", {
-        username: { type: Sequelize.TEXT, allowNull: false, primaryKey: true },
-        salt:     { type: Sequelize.TEXT },
-        passkey:  { type: Sequelize.TEXT } })
-
-    sequelize.sync().done(function() {
-        socket_io.listen(server).sockets.on('connection', onConnection)
-    })
+    database = new pg.Client(process.env.DATABASE_URL)
+    database.connect()
+    socket_io.listen(server).sockets.on('connection', onConnection)
 }
 
 exports.listGames = function(callback)
 {
     // FIXME: this retrieves full rows, even the serializedState field that I don't want!
     // FIXME: do ordering + limiting on the server side
-    orm.Game.findAll().error(function(err) {
-        callback(err, [])
-    }).success(function(rows){
-        var gamelist = []
-        for (var i in rows)
+    database.query( 'SELECT * FROM "Games"', function(err,result) {
+        if (err)
         {
-            var row = rows[i]
+            callback(err, null)
+            return
+        }
+        var gamelist = []
+        for (var i in result.rows)
+        {
+            var row = result.rows[i]
+            var game_id = row.game_id
             gamelist.push({
-                "id":         row.id,
-                "createdAt":  row.createdAt,    
-                "updatedAt":  row.updatedAt,
+                "id":         game_id,
+                "createdAt":  new Date(row.created_at),
+                "updatedAt":  new Date(row.updated_at),
                 "over":       row.over,
-                "online":     games[row.id] ? games[row.id].clients.length : 0 })
+                "online":     games[game_id] ? games[game_id].clients.length : 0 })
         }
         callback(null, gamelist)
     })
@@ -337,33 +325,31 @@ exports.createAccount = function(username, salt, passkey, callback)
         return
     }
 
-    orm.User.find(username).success(function(user){
-        if (user)
+    // Check if user exists:
+    database.query('SELECT 1 FROM "Users" WHERE "username" = $1', [username], function(err,result) {
+        if (err) { callback(err); return }
+        if (result.rows.length > 0)
         {
-            callback(new Error("username is already in use"))
+            callback(new Error("username already taken"))
+            return
         }
-        else
-        {
-            orm.User.create({ username: username, salt: salt, passkey: passkey }).success(function(user) {
-                callback(null, user.username)
-            })
-        }
+        // Create new user row.
+        database.query('INSERT INTO "Users" ("username", "salt", "passkey") VALUES ($1,$2,$3)', [username,salt,passkey], function(err,result) {
+            if (err) { callback(err); return }
+            callback(null, username)
+        })
     })
 }
 
 exports.getAuthChallenge = function(username, callback)
 {
-    orm.User.find(username.toLowerCase()).success(function(user){
-        if (!user)
-        {
-            callback(new Error("user not found"))
-        }
-        else
-        {
-            // FIXME: nonce is just a random number for now.  This doesn't protect against replay attacks!
-            var nonce = crypto.randomBytes(20).toString("hex")
-            callback(null, user.username, user.salt, nonce)
-        }
+    username = username.toLowerCase()
+    database.query('SELECT "salt" FROM "Users" WHERE "username" = $1', [username], function(err,result) {
+        if (err) { callback(err); return }
+        if (result.rows.length == 0) { callback(new Error("user not found")); return }
+        // FIXME: nonce is just a random number for now.  This doesn't protect against replay attacks!
+        var nonce = crypto.randomBytes(20).toString("hex")
+        callback(null, username, result.rows[0].salt, nonce)
     })
 }
 
@@ -376,23 +362,17 @@ exports.authenticate = function(username, nonce, proof, callback)
         callback(new Error("invalid arguments"))
         return
     }
-    orm.User.find(username.toLowerCase()).success(function(user){
-        if (!user)
+    username = username.toLowerCase()
+    database.query('SELECT "passkey" FROM "Users" WHERE "username" = $1', [username], function(err,result) {
+        if (err) { callback(err);  return }
+        if (result.rows.length == 0) { callback(new Error("user not found")); return }
+        // FIXME: should verify nonce was generated by the server (see above)
+        if (rmd.str(rmd.digest(nonce, rmd.vec(result.rows[0].passkey))) != proof)
         {
-            callback(new Error("user not found"))
+            callback(new Error("invalid password"))
+            return
         }
-        else
-        {
-            // FIXME: should verify nonce was generated by the server (see above)
-            if (rmd.str(rmd.digest(nonce, rmd.vec(user.passkey))) != proof)
-            {
-                callback(new Error("invalid password"))
-            }
-            else
-            {
-                callback(null, user.username)
-            }
-        }
+        callback(null, username)
     })
 }
 
@@ -403,6 +383,7 @@ exports.storePlayerKey = function(username, game_id, player_key, store, callback
         callback(new Error("not logged in"))
         return
     }
+/*
     orm.User.find(username.toLowerCase()).success(function(user){
         if (!user)
         {
@@ -432,6 +413,8 @@ exports.storePlayerKey = function(username, game_id, player_key, store, callback
             // TODO: check if typeof(store) == 'boolean' and if so, change state
         })
     })
+*/
+    callback(null, false)   // TEMP
 }
 
 exports.createGame = createGame
