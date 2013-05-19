@@ -3,7 +3,7 @@
 CREATE TABLE "Games" (
 	"game_id" SERIAL,
 	"serialized_state" TEXT NOT NULL,
-	"over" BOOLEAN NOT NULL DEFAULT false,
+    "next_player" INTEGER NOT NULL DEFAULT 0,
 	"created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("game_id") );
@@ -19,5 +19,5 @@ CREATE TABLE "Players" (
 	"username" TEXT,
 	"index" INTEGER,
 	"key" TEXT UNIQUE,
-	FOREIGN KEY ("game_id") REFERENCES "Games"("game_id"),
-	FOREIGN KEY ("username") REFERENCES "Users"("username") );
+	FOREIGN KEY ("game_id") REFERENCES "Games"("game_id") ON DELETE CASCADE,
+	FOREIGN KEY ("username") REFERENCES "Users"("username") ON DELETE SET NULL );
