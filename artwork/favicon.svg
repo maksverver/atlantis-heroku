@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="64"
+   height="64"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="favicon.svg"
+   inkscape:export-filename="/home/maks/Projects/Atlantis/artwork/favicon.png"
+   inkscape:export-xdpi="299.53125"
+   inkscape:export-ydpi="299.53125">
+  <defs
+     id="defs4" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="7.9195959"
+     inkscape:cx="3.1610019"
+     inkscape:cy="15.404423"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:window-width="1680"
+     inkscape:window-height="1028"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid2985"
+       empspacing="8"
+       visible="true"
+       enabled="true"
+       snapvisiblegridlinesonly="true" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-988.36218)">
+    <rect
+       style="fill:#80a0ff;fill-opacity:1;stroke:none"
+       id="rect3763"
+       width="64"
+       height="64"
+       x="0"
+       y="1.1368684e-13"
+       transform="translate(0,988.36218)" />
+    <path
+       sodipodi:type="star"
+       style="fill:#ffffa0;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path2993"
+       sodipodi:sides="6"
+       sodipodi:cx="32"
+       sodipodi:cy="32"
+       sodipodi:r1="24"
+       sodipodi:r2="20.784611"
+       sodipodi:arg1="1.5707963"
+       sodipodi:arg2="2.0943951"
+       inkscape:flatsided="true"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 32.000001,56 -20.78461,-11.999999 -1e-6,-24 L 31.999999,8 l 20.78461,11.999999 10e-7,24 z"
+       transform="matrix(1.0719362,0,0,1.0719362,-2.3019584,986.06023)" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#ff0000;fill-opacity:1;stroke:#800000;stroke-width:0.71000642;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="path3791"
+       sodipodi:cx="32"
+       sodipodi:cy="32"
+       sodipodi:rx="8"
+       sodipodi:ry="8"
+       d="m 40,32 a 8,8 0 1 1 -16,0 8,8 0 1 1 16,0 z"
+       transform="matrix(0.69866071,0,0,0.70982143,9.7232132,987.82647)" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#ff0000;fill-opacity:1;stroke:#800000;stroke-opacity:1;stroke-width:0.71000644000000002;stroke-miterlimit:4;stroke-dasharray:none"
+       id="path3791-0"
+       sodipodi:cx="32"
+       sodipodi:cy="32"
+       sodipodi:rx="8"
+       sodipodi:ry="8"
+       d="m 40,32 a 8,8 0 1 1 -16,0 8,8 0 1 1 16,0 z"
+       transform="matrix(0.69866071,0,0,0.70982143,17.803571,1002.6122)" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#ff0000;fill-opacity:1;stroke:#800000;stroke-width:0.71000642;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="path3791-3"
+       sodipodi:cx="32"
+       sodipodi:cy="32"
+       sodipodi:rx="8"
+       sodipodi:ry="8"
+       d="m 40,32 a 8,8 0 1 1 -16,0 8,8 0 1 1 16,0 z"
+       transform="matrix(0.69866071,0,0,0.70982143,1.642857,1002.6122)" />
+  </g>
+</svg>

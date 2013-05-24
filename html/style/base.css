@@ -1,6 +1,8 @@
 body {
     background: white;
     color:      black;
+    margin:         0;
+    padding:        0;
 }
 
 body, input, select {
@@ -17,3 +19,13 @@ h1 { font-size: 21pt }
 h2 { font-size: 18pt }
 h3 { font-size: 15pt }
 h4 { font-size: 12pt }
+
+.anchor, a, a:visited {
+    color: #0000a0;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.anchor:hover, a:hover {
+    text-decoration: underline;
+}

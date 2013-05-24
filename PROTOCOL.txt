@@ -1,15 +1,9 @@
 Client to Server
 ----------------
 
-"create"
-    gamestate (object):
-        GameState representation returned by gamestate.objectify()
-
-    Request the creation of a new game.  The server responds with a "created"
-    message, or an "error-message" if the game cannot be created.
-
 "join"
     game_id (string)
+    player_key (string)
 
     Request the client to join the game with the given ID.  Server responds
     with "game" or an "error-message" if the specified game ID is invalid or
@@ -40,9 +34,11 @@ Server to Client
 "game":
     gamestate (object):
         GameState representation returned by gamestate.objectify()
+    player_index (integer):
+        Index of player controlled by the client (or -1 for none)
 
     Notifies the client of the current game state.  Sent once per connection,
-    in repsonse of a "join" message.
+    in response to a "join" message.
 
 "error-message":
     message (string):
@@ -67,10 +63,3 @@ Server to Client
 
     Notifies the client that another turn has been executed.  The client is
     supposed to update its game state.
-
-"created":
-    game_id (string):
-        ID of game created in response to a "create" message.
-
-    Notifies the client that a new game has been created.  Sent in response to
-    a "create" message only.

@@ -1,0 +1,57 @@
+
+#AuthBar {
+    display:    block;
+    width:      100%;
+    background: #80a0ff;
+}
+
+#AuthBar .tabHandle, #AuthMessage {
+    margin-left:    4px;
+}
+
+#AuthBar .tabHandle {
+    display:        inline-block;
+    color:          white;
+    font-weight:    bold;
+    cursor:         pointer;
+    padding:        2px 4px 2px 4px;
+}
+
+#AuthBar .tabHandle:hover {
+    text-decoration: underline;
+}
+
+#AuthBar .tabHandle.active {
+    text-decoration:    none;
+    background:         #4060a0;
+    border-top:         4px solid #80a0ff;
+}
+
+#AuthBar #AuthMessage {
+    display:        inline-block;
+    padding:        2px;
+    color:          black
+}
+
+#AuthBar .tabBody {
+    background:     #4060a0;
+    color:          white;
+    padding:        0.25em;
+}
+#AuthBar .tabBody input {
+    background: #304080;
+    border:   0;
+    color:  white
+}
+
+#AuthBar .tabBody input.button {
+    cursor: pointer;
+}
+
+#AuthBar a {
+    color: #a00000
+}
+
+#Username {
+    font-weight: bold
+}

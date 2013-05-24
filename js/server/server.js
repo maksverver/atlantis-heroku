@@ -2,23 +2,37 @@
 
 // Atlantis game server implementation
 
+var crypto      = require('crypto')
 var fs          = require('fs')
 var url         = require('url')
-var Sequelize   = require('sequelize')
+var pg          = require('pg').native
 var socket_io   = require('socket.io')
-var GameState   = require("../common/GameState.js")
 
-var orm         = { }       // Sequelize ORM constructors
+var GameState   = require("../common/GameState.js")
+var rmd         = require("../common/RIPEMD-160.js")
+
+var database   = null       // PostgreSQL database handle
 var games       = { }       // currently loaded games
+
+function propagateError(callback, onSuccess)
+{
+    return function(err, result) {
+        if (err) callback(err)
+        else onSuccess(result)
+    }
+}
 
 function removeClient(game_id, client)
 {
     var clients = games[game_id].clients
-    for (var i = 0; i < clients.length; ++i)
+    if (client)
     {
-        if (clients[i] === client)
+        for (var i = 0; i < clients.length; ++i)
         {
-            clients.splice(i--, 1)
+            if (clients[i] === client)
+            {
+                clients.splice(i--, 1)
+            }
         }
     }
     if (clients.length == 0)
@@ -39,71 +53,88 @@ function retrieveGame(game_id, new_client, callback)
 
     /* FIXME: there is sort of a race condition here. Multiple clients
               might call retrieveGame() at the same time! */
-
-    orm.Game.find(game_id).error(function(err) {
-        callback(err, null)
-    }).success(function(game) {
-        if (!game) {
+    database.query( 'SELECT "game_id", "serialized_state", "next_player" FROM "Games" WHERE game_id = $1',
+                    [game_id], propagateError(callback, function(result) {
+        if (result.rows.length < 1)
+        {
             callback(new Error("Game not found"), null)
+            return
         }
-        if (games[game_id])
+        var row = result.rows[0]
+        var obj = JSON.parse(row.serialized_state)
+        var game = games[game_id]  // handle race-condition
+        if (!game)
         {
-            game = games[game_id]   // handle race-condition
-        }
-        else
-        {
-            game.state   = GameState(JSON.parse(game.serializedState))
-            game.clients = []
+            game = { gameId:        row.game_id,
+                     state:         GameState(obj),
+                     nextPlayer:    row.next_player,
+                     clients:       [ ] }
             games[game_id] = game
             console.log("Game " + game_id + " cached.")
         }
         if (new_client) game.clients.push(new_client)
         callback(null, game)
+    }))
+}
+
+function getPlayerIndex(game_id, key, callback)
+{
+    if (!key)
+    {
+        callback(null, -1)
+        return
+    }
+    database.query( 'SELECT "index" FROM "Players" WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 LIMIT 1',
+                    [game_id, key], function(error, result) {
+        callback(!error && result.rows.length > 0 ? result.rows[0].index : -1)
     })
 }
 
 function storeGame(game, callback)
 {
-    game.serializedState = JSON.stringify(game.state.objectify())
-    game.save().success(function() {
-        callback(null)
-    }).error(function(err) {
-        callback(err)
-    })
+    var obj = game.state.objectify()
+    database.query( 'UPDATE "Games" SET "serialized_state"=$2, "next_player"=$3, "updated_at"=NOW() WHERE "game_id" = $1',
+                    [game.gameId, JSON.stringify(obj), game.nextPlayer() ], propagateError(callback, function(result) { callback(null) }))
+}
+
+function createGame(game, callback)
+{
+    var gamestate = GameState(game)
+    if (gamestate.getPlayers().length < 2)
+    {
+        callback(new Error("Invalid game state received!"))
+        return
+    }
+    var keys = []
+    game = gamestate.objectify()
+    database.query( 'INSERT INTO "Games" ("serialized_state") VALUES ($1) RETURNING("game_id")', [JSON.stringify(game)],
+                    propagateError(callback, function(result) {
+        var game_id = result.rows[0].game_id
+        console.log('Created game "' + game_id + '".')
+
+        for (var i = 0; i < gamestate.getPlayers().length; ++i)
+        {
+            var key = crypto.randomBytes(20).toString("hex")
+            database.query('INSERT INTO "Players" ("game_id","index","key") VALUES ($1,$2,$3) RETURNING("game_id")', [game_id,i,key])
+            keys.push(key)
+        }
+        callback(null, game_id, keys)
+    }))
 }
 
 function onConnection(client)
 {
     var game_id = null
+    var player_index = -1
 
-    client.on('create', function(game) {
-
-        if (game_id) return
-
-        var gamestate = GameState(game)
-        if (gamestate.getPlayers().length < 2)
-        {
-            client.emit('error-message', "Invalid game state received!")
-        }
-        else
-        {
-            game = gamestate.objectify()
-            orm.Game.create({
-                serializedState: JSON.stringify(gamestate.objectify())
-            }).success(function(game) {
-                console.log('Created game "' + game.id + '".')
-                client.emit('created', game.id)
-            }).error(function(err) {
-                console.log("Failed to create game: " + err)
-                client.emit('error-message', "Could not create game!")
-            })
-        }
-    })
-
-    client.on('join', function (new_game_id) {
+    client.on('join', function (new_game_id, player_key) {
 
         new_game_id = parseInt(new_game_id)
-        if (!(new_game_id > 0)) return
+        if (!(new_game_id > 0))
+        {
+            client.emit('error-message', "Invalid/missing game id!")
+            return
+        }
 
         retrieveGame(new_game_id, client, function(err, game) {
             if (!game)
@@ -119,7 +150,10 @@ function onConnection(client)
             else
             {
                 game_id = new_game_id
-                client.emit('game', game.state.objectify())
+                getPlayerIndex(game_id, player_key, function(index) {
+                    if (index >= 0) player_index = index
+                    client.emit('game', game.state.objectify(), player_index)
+                })
             }
         })
     })
@@ -134,9 +168,14 @@ function onConnection(client)
                 client.emit('error-message', "Game not found!")
             }
             else
-            if (game.over)
+            if (game.nextPlayer < 0)
             {
                 client.emit('error-message', "Game is over!")
+            }
+            else
+            if (player_index < 0 || game.nextPlayer != player_index)
+            {
+                client.emit('error-message', "It's not your turn!")
             }
             else
             {
@@ -167,9 +206,14 @@ function onConnection(client)
                 client.emit('error-message', "Game not found!")
             }
             else
-            if (game.over)
+            if (game.nextPlayer < 0)
             {
                 client.emit('error-message', "Game is over!")
+            }
+            else
+            if (player_index < 0 || game.nextPlayer != player_index)
+            {
+                client.emit('error-message', "It's not your turn!")
             }
             else
             {
@@ -191,11 +235,11 @@ function onConnection(client)
 
                     // Now advance to the next player that can make a move:
                     var regions = game.state.calculateRegions()
-                    while (!game.state.hasPlayerMoves(game.state.getNextPlayer(), regions))
+                    while (!game.state.hasPlayerMoves(game.nextPlayer = game.state.getNextPlayer(), regions))
                     {
                         if (game.state.isGameOver(regions))
                         {
-                            game.over = true
+                            game.nextPlayer = -1
                             break
                         }
 
@@ -209,7 +253,7 @@ function onConnection(client)
                     storeGame(game, function(err) {
                         if (err)
                         {
-                            Console.log("Failed to store game " + game_id + ": " + err)
+                            console.log("Failed to store game " + game_id + ": " + err)
                             client.emit('error-message', "Failed to store turn!")
                             // ... continue anyway because we have the game cached
                         }
@@ -234,60 +278,175 @@ function onConnection(client)
 
 exports.listen = function(server, store)
 {
-    // Setup database connection:
-    if (!process.env.DATABASE_URL)
-    {
-        throw new Error("environmental variable DATABASE_URL not set")
-    }
-    var params = url.parse(process.env.DATABASE_URL, true)
-    var dialect = params.protocol.substring(0, params.protocol.indexOf(':'))
-    var database = params.pathname.substring(params.pathname.indexOf('/') + 1)
-    var username = params.auth ? params.auth.substring(0, params.auth.indexOf(':'))  : ""
-    var password = params.auth ? params.auth.substring(params.auth.indexOf(':') + 1) : ""
-    var sequelize = new Sequelize( database, username, password, {
-        host: params.hostname, port: params.port, dialect: dialect,
-        native: true,      /* this is used by PostgreSQL in order to support SSL */
-        storage: database, /* this is used by SQLite as the database file path */
-        define: { charset: "utf8" } })
+    database = new pg.Client(process.env.DATABASE_URL)
+    database.connect()
+    socket_io.listen(server).sockets.on('connection', onConnection)
+}
 
-    // Create database schema:
-    orm.Game = sequelize.define("Game", {
-        id:              { type: Sequelize.INTEGER, allowNull: false, autoIncrement: true },
-        serializedState: { type: Sequelize.TEXT,    allowNull: false                      },
-        over:            { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false } })
-
-    sequelize.sync().done(function() {
-
-        var io = socket_io.listen(server)
-
-        // Configure socket.io for use on Heroku:
-        // https://devcenter.heroku.com/articles/using-socket-io-with-node-js-on-heroku
-        io.set("transports", ["xhr-polling", "jsonp-polling"])
-        io.set("polling duration", 10)
-        io.set("log level", 1)
-
-        io.sockets.on('connection', onConnection)
-    })
+function filterGamesList(callback, result)
+{
 }
 
 exports.listGames = function(callback)
 {
-    // FIXME: this retrieves full rows, even the serializedState field that I don't want!
-    // FIXME: do ordering + limiting on the server side
-    orm.Game.findAll().error(function(err) {
-        callback(err, [])
-    }).success(function(rows){
-        var gamelist = []
-        for (var i in rows)
+    database.query( 'SELECT "game_id","created_at","updated_at","next_player" FROM "Games" ORDER BY "updated_at" DESC LIMIT 100', function(err,result) {
+        if (err)
         {
-            var row = rows[i]
+            callback(err, null)
+            return
+        }
+        var gamelist = []
+        for (var i in result.rows)
+        {
+            var row = result.rows[i]
+            var game_id = row.game_id
             gamelist.push({
-                "id":         row.id,
-                "createdAt":  row.createdAt,    
-                "updatedAt":  row.updatedAt,
-                "over":       row.over,
-                "online":     games[row.id] ? games[row.id].clients.length : 0 })
+                "gameId":     game_id,
+                "createdAt":  new Date(row.created_at),
+                "updatedAt":  new Date(row.updated_at),
+                "nextPlayer": row.next_player,
+                "online":     games[game_id] ? games[game_id].clients.length : 0 })
         }
         callback(null, gamelist)
     })
 }
+
+exports.listMyGames = function(username,callback)
+{
+    database.query( 'SELECT "game_id","created_at","updated_at","next_player","index" AS "my_player","key" FROM "Games" NATURAL JOIN "Players" WHERE "username"=$1', [username], function(err,result) {
+        if (err)
+        {
+            callback(err, null)
+            return
+        }
+        var gamelist = []
+        for (var i in result.rows)
+        {
+            var row = result.rows[i]
+            var game_id = row.game_id
+            gamelist.push({
+                "gameId":     game_id,
+                "createdAt":  new Date(row.created_at),
+                "updatedAt":  new Date(row.updated_at),
+                "nextPlayer": row.next_player,
+                "myPlayer":   row.my_player,
+                "myKey":      row.key,
+                "online":     games[game_id] ? games[game_id].clients.length : 0 })
+        }
+        callback(null, gamelist)
+    })
+}
+
+exports.createAccount = function(username, salt, passkey, callback)
+{
+    if ( typeof username != "string" ||
+         typeof salt     != "string" ||
+         typeof passkey  != "string" || !passkey.match(/^[0-9a-f]{40}$/) )
+    {
+        callback(new Error("invalid arguments"))
+        return
+    }
+
+    username = username.toLowerCase()
+    if (!username.match(/^[a-z][a-z0-9]*$/))
+    {
+        callback(new Error("username must start with a letter, and may contain only ASCII letters and digits"))
+        return
+    }
+
+    // Check if user exists:
+    database.query('SELECT 1 FROM "Users" WHERE "username" = $1', [username], function(err,result) {
+        if (err) { callback(err); return }
+        if (result.rows.length > 0)
+        {
+            callback(new Error("username already taken"))
+            return
+        }
+        // Create new user row.
+        database.query('INSERT INTO "Users" ("username", "salt", "passkey") VALUES ($1,$2,$3)', [username,salt,passkey], function(err,result) {
+            if (err) { callback(err); return }
+            callback(null, username)
+        })
+    })
+}
+
+exports.getAuthChallenge = function(username, callback)
+{
+    username = username.toLowerCase()
+    database.query('SELECT "salt" FROM "Users" WHERE "username" = $1', [username],
+                   propagateError(callback, function(result) {
+        if (result.rows.length == 0)
+        {
+            callback(new Error("user not found"))
+            return
+        }
+        // FIXME: nonce is just a random number for now.  This doesn't protect against replay attacks!
+        var nonce = crypto.randomBytes(20).toString("hex")
+        callback(null, username, result.rows[0].salt, nonce)
+    }))
+}
+
+exports.authenticate = function(username, nonce, proof, callback)
+{
+    if ( typeof username != "string" ||
+         typeof nonce    != "string" ||
+         typeof proof    != "string" )
+    {
+        callback(new Error("invalid arguments"))
+        return
+    }
+    username = username.toLowerCase()
+    database.query('SELECT "passkey" FROM "Users" WHERE "username" = $1', [username],
+                   propagateError(callback, function(result) {
+        if (result.rows.length == 0)
+        {
+            callback(new Error("user not found"))
+            return
+        }
+        // FIXME: should verify nonce was generated by the server (see above)
+        if (rmd.str(rmd.digest(nonce, rmd.vec(result.rows[0].passkey))) != proof)
+        {
+            callback(new Error("invalid password"))
+            return
+        }
+        callback(null, username)
+    }))
+}
+
+exports.storePlayerKey = function(username, game_id, player_key, store, callback)
+{
+    if (!username)
+    {
+        callback(new Error("not logged in"))
+        return
+    }
+    if (typeof store != 'boolean')
+    {
+        database.query( 'SELECT "username" FROM "Players" WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 LIMIT 1',
+                        [game_id, player_key], propagateError(callback, function(result) {
+            if (result.rows.length == 0)
+            {
+                callback(new Error("invalid game or key"))
+                return
+            }
+            callback(null, username == result.rows[0].username)
+        }))
+    }
+    else
+    if (store)
+    {
+        database.query('UPDATE "Players" SET username=$3 WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 AND username IS NULL',
+                       [game_id, player_key, username], propagateError(callback, function(result){
+            callback(null, result.rowCount > 0)
+        }))
+    }
+    else
+    {
+        database.query('UPDATE "Players" SET username=NULL WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 AND username=$3',
+                       [game_id, player_key, username], propagateError(callback, function(result){
+            callback(null, false)
+        }))
+    }
+}
+
+exports.createGame = createGame

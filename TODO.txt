@@ -1,26 +1,25 @@
+  - publish next release?
+  - associate games with owners (and allow retrieval of keys)
+
 Next milestone release:
-  - maybe user accounts?
-  - provide separate player URLs
-  - allow player to specify their names
+  - show player names when possible
+  - clearer turn notification:
+     - on gameslist, games where it is my turn should be sorted to top
+     - in game, the controlling player should be more visible
+     - make sound / update title bar when it is your turn
+
+Next milestone release:
   - chat support / revise transcript format to allow commentary?
   - prettify frontpage
 
-To deploy on Heroku:
-  - implement PostgreSQL storage backend (with modification time)
-
-Board canvas:
-  - option to show field coordinates
-
-Server:
- - sort/limit list of games (sort by online count first, mtime second?)
-   (move code from client into FileStorage.)
-
 HTML:
-  - make reset button go back only one (sub)phase or move
+  - make reset button go back only one (sub)phase/move
   - option to show field coordinates
-  - separate board setup from rest of client (too much tight coupling!)
   - add sound effects (especially to notify player of his turn)
+  - should highlight "my" player more clearly
 
 Setup mode:
-  - should have a "back" button!
+  - should have a "back" button 
   - support single-player mode
+  - add copy-to-clipboard icon to player links
+    (for n00bs that don't know how to right-click Copy Link Address)
