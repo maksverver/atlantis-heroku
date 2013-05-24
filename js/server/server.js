@@ -280,11 +280,14 @@ exports.listen = function(server, store)
 {
     database = new pg.Client(process.env.DATABASE_URL)
     database.connect()
-    socket_io.listen(server).sockets.on('connection', onConnection)
-}
 
-function filterGamesList(callback, result)
-{
+    // Configure socket.io for use on Heroku:
+    // https://devcenter.heroku.com/articles/using-socket-io-with-node-js-on-heroku
+    var io = socket_io.listen(server)
+    io.set("transports", ["xhr-polling", "jsonp-polling"])
+    io.set("polling duration", 10)
+    io.set("log level", 1)
+    io.sockets.on('connection', onConnection)
 }
 
 exports.listGames = function(callback)
