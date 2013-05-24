@@ -5,7 +5,7 @@
 var crypto      = require('crypto')
 var fs          = require('fs')
 var url         = require('url')
-var pg          = require('pg')
+var pg          = require('pg').native
 var socket_io   = require('socket.io')
 
 var GameState   = require("../common/GameState.js")
@@ -81,7 +81,7 @@ function getPlayerIndex(game_id, key, callback)
 {
     if (!key)
     {
-        callback(null, -1)
+        callback(-1)
         return
     }
     database.query( 'SELECT "index" FROM "Players" WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 LIMIT 1',
