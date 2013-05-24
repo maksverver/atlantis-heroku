@@ -94,7 +94,7 @@ function storeGame(game, callback)
 {
     var obj = game.state.objectify()
     database.query( 'UPDATE "Games" SET "serialized_state"=$2, "next_player"=$3, "updated_at"=NOW() WHERE "game_id" = $1',
-                    [game.gameId, JSON.stringify(obj), game.nextPlayer() ], propagateError(callback, function(result) { callback(null) }))
+                    [game.gameId, JSON.stringify(obj), game.nextPlayer ], propagateError(callback, function(result) { callback(null) }))
 }
 
 function createGame(game, callback)
