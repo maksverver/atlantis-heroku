@@ -67,14 +67,10 @@ function fixEventOffset(event, element)
     // This is retarded. JavaScript in the browser fucking sucks.
     if (!event.hasOwnProperty('offsetX'))
     {
-        event.offsetX = event.layerX
-        event.offsetY = event.layerY
-        while (element.offsetParent)
-        {
-            event.offsetX -= element.offsetLeft
-            event.offsetY -= element.offsetTop
-            element = element.offsetParent
-        }
+        event.offsetX = event.layerX - element.offsetLeft
+        event.offsetY = event.layerY - element.offsetTop
+        /* `element` has an attribute `offsetParent` too,
+           but apparently adding offsets recusively doesn't work! */
     }
 }
 
