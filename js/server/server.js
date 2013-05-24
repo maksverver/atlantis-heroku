@@ -5,7 +5,7 @@
 var crypto      = require('crypto')
 var fs          = require('fs')
 var url         = require('url')
-var pg          = require('pg').native
+var pg          = require('pg')
 var socket_io   = require('socket.io')
 
 var GameState   = require("../common/GameState.js")
