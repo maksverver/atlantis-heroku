@@ -173,12 +173,47 @@ function createScoreBoard()
     updateScoreBoard()
 }
 
+function showPlayerKeys(game_id, player_keys)
+{
+    var div = document.getElementById('GameCreated')
+    div.style.display = 'block'
+
+    var spectator_link = document.getElementById("SpectatorLink")
+    spectator_link.href = "game.html#game=" + game_id
+    spectator_link.target = "game-" + game_id
+
+    var table = document.getElementById("PlayerLinks")
+    for (var i = 0; i < player_keys.length; ++i)
+    {
+        var tr = document.createElement("tr")
+        var td = document.createElement("td")
+        var label = document.createElement("label")
+        label.className = "ColorButton"
+        label.style.backgroundColor = gamestate.getPlayer(i).color
+        td.appendChild(label)
+        var caption = document.createElement("span")
+        caption.appendChild(document.createTextNode(i + 1))
+        label.appendChild(caption)
+        td.appendChild(label)
+        tr.appendChild(td)
+        var td = document.createElement("td")
+        var a = document.createElement("a")
+        a.appendChild(document.createTextNode("Link for player " + (i + 1)))
+        a.href = "game.html#game=" + game_id + "&player=" + player_keys[i]
+        a.target = "game-" + game_id + ",player-" + (i + 1)
+        td.appendChild(a)
+        tr.appendChild(td)
+        table.appendChild(tr)
+    }
+}
+
 function onAuthChange(username)
 {
     function storePlayerKey(store)
     {
         rpc({ "method":    "storePlayerKey",
               "gameId":    params.game,
+              "ownerKey":  params.owner,
               "playerKey": params.player,
               "store":     store
             }, onKeyStored)
@@ -235,7 +270,7 @@ function initialize()
     server = io.connect(document.location.origin)
     server.on('connection-failed', function () { alert('Connection failed!') })
     server.on('disconnected', function () { alert('Connection lost!') })
-    server.on('game', function(state, player_index) {
+    server.on('game', function(state, player_index, player_keys) {
         document.getElementById("Buttons").style.display = "block"
         gamestate = GameState(state)
         my_player = player_index
@@ -246,7 +281,7 @@ function initialize()
             selection = new MoveSelection(gamestate)
             setMyTurn(my_player >= 0 && gamestate.getNextPlayer() == my_player)
 
-            if (my_player >= 0)
+            if (my_player >= 0 || (player_keys && player_keys.length > 0))
             {
                 // allow player to associate the game with his account
                 onAuthChange(auth.getUsername())
@@ -257,6 +292,10 @@ function initialize()
         {
             selection = null
             setMyTurn(false)
+        }
+        if (player_keys)
+        {
+            showPlayerKeys(params.game, player_keys)
         }
         board.redraw(gamestate, selection)
     })
@@ -289,7 +328,7 @@ function initialize()
     var connected = 0
     server.on('connect', function() {
         // NOTE: this fires on automatic reconnects too!
-        if (connected++ == 0) server.emit('join', params['game'], params['player'])
+        if (connected++ == 0) server.emit('join', params.game, params.owner || params.player)
     })
     auth.initialize()
 }

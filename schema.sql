@@ -3,7 +3,7 @@
 CREATE TABLE "Games" (
 	"game_id" SERIAL,
 	"serialized_state" TEXT NOT NULL,
-    "next_player" INTEGER NOT NULL DEFAULT 0,
+	"next_player" INTEGER NOT NULL DEFAULT 0,
 	"created_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("game_id") );

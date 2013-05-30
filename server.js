@@ -21,66 +21,75 @@ app.use('/rpc', function(request, response, next) {
         return next()
     }
 
-    switch (request.body.method)
+    try
     {
-    case 'createAccount':
-        atlantis.createAccount(request.body.username, request.body.salt, request.body.passkey, function(err, username) {
-            if (username) response.cookie('username', username, { signed: true, httpOnly: true })
-            response.json({error: err ? err.message : undefined, username: username })
-        })
-        break
+        switch (request.body.method)
+        {
+        case 'createAccount':
+            atlantis.createAccount(request.body.username, request.body.salt, request.body.passkey, function(err, username) {
+                if (username) response.cookie('username', username, { signed: true, httpOnly: true })
+                response.json({error: err ? err.message : undefined, username: username })
+            })
+            break
 
-    case 'getUsername':
-        response.json({username: request.signedCookies.username})
-        break
+        case 'getUsername':
+            response.json({username: request.signedCookies.username})
+            break
 
-    case 'getAuthChallenge':
-        atlantis.getAuthChallenge(request.body.username, function(err, username, salt, nonce) {
-            response.json({error: err ? err.message : undefined, username: username, salt: salt, nonce: nonce })
-        })
-        break
+        case 'getAuthChallenge':
+            atlantis.getAuthChallenge(request.body.username, function(err, username, salt, nonce) {
+                response.json({error: err ? err.message : undefined, username: username, salt: salt, nonce: nonce })
+            })
+            break
 
-    case 'authenticate':
-        atlantis.authenticate(request.body.username, request.body.nonce, request.body.proof, function(err, username) {
-            if (username) response.cookie('username', username, { signed: true, httpOnly: true })
-            response.json({ error: err ? err.message : undefined, username: username || undefined })
-        })
-        break
+        case 'authenticate':
+            atlantis.authenticate(request.body.username, request.body.nonce, request.body.proof, function(err, username) {
+                if (username) response.cookie('username', username, { signed: true, httpOnly: true })
+                response.json({ error: err ? err.message : undefined, username: username || undefined })
+            })
+            break
 
-    case 'logOut':
-        response.cookie('username')
-        response.json({})
-        break
+        case 'logOut':
+            response.cookie('username')
+            response.json({})
+            break
 
-    case 'createGame':
-        atlantis.createGame(request.body.game, function(err, gameId, playerKeys) {
-            response.json({ error:      err ? err.message : undefined,
-                            gameId:     gameId || undefined,
-                            playerKeys: playerKeys || undefined })
-        })
-        break
+        case 'createGame':
+            atlantis.createGame(request.body.game, function(err, gameId, ownerKey) {
+                response.json({ error:      err ? err.message : undefined,
+                                gameId:     gameId || undefined,
+                                ownerKey:   ownerKey || undefined })
+            })
+            break
 
-    case 'storePlayerKey':
-        atlantis.storePlayerKey( request.signedCookies.username, request.body.gameId,
-                                 request.body.playerKey, request.body.store, function(err, result) {
-            response.json({ error: err ? err.message : undefined, result: result })
-        })
-        break
+        case 'storePlayerKey':
+            atlantis.storePlayerKey( request.signedCookies.username, request.body.gameId,
+                                     request.body.playerKey || request.body.ownerKey,
+                                     request.body.store, function(err, result) {
+                response.json({ error: err ? err.message : undefined, result: result })
+            })
+            break
 
-    case 'listGames':
-        atlantis.listGames(function(err, games) {
-            response.json({error: err ? err.message : undefined, games: games})
-        })
-        break
+        case 'listGames':
+            atlantis.listGames(function(err, games) {
+                response.json({error: err ? err.message : undefined, games: games})
+            })
+            break
 
-    case 'listMyGames':
-        atlantis.listMyGames(request.signedCookies.username, function(err, games) {
-            response.json({error: err ? err.message : undefined, games: games})
-        })
-        break
+        case 'listMyGames':
+            atlantis.listMyGames(request.signedCookies.username, function(err, games) {
+                response.json({error: err ? err.message : undefined, games: games})
+            })
+            break
 
-    default:
-        response.send(403)
+        default:
+            response.send(403)
+        }
+    }
+    catch (err)
+    {
+        console.log("Error caught in RPC request handler: " + err)
+        response.send(500)
     }
 })
 

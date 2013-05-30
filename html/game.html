@@ -21,6 +21,14 @@
   <div id="ColumnSplitter" class="Draggable"></div>
   <div id="RightColumnContents">
     <div id="ScoreBoard" style="display:none"><h3>Scoreboard</h3></div>
+    <div id="GameCreated" style="display:none">
+      <h4>Game created!</h4>
+      <p>Send these links to each of players for the game:</p>
+      <table id="PlayerLinks">
+      <tr><td><label class="WhiteColorButton"></label></td><td><a href="#" id="SpectatorLink">Link for spectators</a></td></tr>
+      </table>
+      <p>Don't close this window until you've saved these links (or associate the game with your account to retrieve them later).</p>
+    </div>
   </div>
 </div>
 <script src="/socket.io/socket.io.js"></script>

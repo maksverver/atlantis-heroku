@@ -1,5 +1,4 @@
   - publish next release?
-  - associate games with owners (and allow retrieval of keys)
 
 Next milestone release:
   - show player names when possible
