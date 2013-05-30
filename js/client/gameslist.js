@@ -104,13 +104,14 @@ function onGamesList(table, games)
         // My player
         if (typeof game.myPlayer != 'undefined')
         {
+            var owner = (game.myPlayer < 0)
             var td = document.createElement("td")
-            td.appendChild(document.createTextNode(game.myPlayer + 1))
+            td.appendChild(document.createTextNode(owner ? "owner" : "player " + (game.myPlayer + 1)))
             td.appendChild(document.createTextNode(" ("))
             var a = document.createElement("a")
-            a.href = "game.html#game=" + encodeURIComponent(game.gameId) + "&player=" + encodeURIComponent(game.myKey)
-            a.target = "game-" + game.gameId + ",player-" + (game.myPlayer + 1)
-            a.appendChild(document.createTextNode('play'))
+            a.href = "game.html#game=" + encodeURIComponent(game.gameId) + "&" + (owner ? "player" : "owner") + "=" + encodeURIComponent(game.myKey)
+            a.target = "game-" + game.gameId + (owner ? "" : "player-" + (game.myPlayer + 1))
+            a.appendChild(document.createTextNode(owner ? 'keys' : 'play'))
             td.style.textAlign = "center"
             td.appendChild(a)
             td.appendChild(document.createTextNode(")"))

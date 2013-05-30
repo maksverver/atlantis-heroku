@@ -77,17 +77,56 @@ function retrieveGame(game_id, new_client, callback)
     }))
 }
 
+/* Return -1 if no matching players are found, a non-negative player index if
+   the `key` is a player key for the given game, and `null` if `key` is an owner
+   key instead. */
 function getPlayerIndex(game_id, key, callback)
 {
     if (!key)
     {
-        callback(-1)
+        callback(null, -1)
         return
     }
-    database.query( 'SELECT "index" FROM "Players" WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 LIMIT 1',
-                    [game_id, key], function(error, result) {
-        callback(!error && result.rows.length > 0 ? result.rows[0].index : -1)
-    })
+    database.query( 'SELECT "index" FROM "Players" WHERE "game_id"=$1 AND "key"=$2 LIMIT 1',
+                    [game_id, key], propagateError(callback, function(result) {
+        if (result.rows.length == 0)
+        {
+            callback(null, -1)
+        }
+        else
+        {
+            callback(null, result.rows[0].index)
+        }
+    }))
+}
+
+function getPlayerKeys(game_id, callback)
+{
+    database.query( 'SELECT "index","key" FROM "Players" WHERE "game_id"=$1 AND "index" >=0',
+                    [game_id], propagateError(callback, function(result) {
+        var keys = []
+        for (var i = 0; i < result.rows.length; ++i)
+        {
+            keys[result.rows[i].index] = result.rows[i].key
+        }
+        callback(null, keys)
+    }))
+}
+
+function getPlayerIndexOrKeys(game_id, key, callback)
+{
+    getPlayerIndex(game_id, key, propagateError(callback, function(index) {
+        if (index === null)
+        {
+            getPlayerKeys(game_id, propagateError(callback, function(keys) {
+                callback(null, -1, keys)
+            }))
+        }
+        else
+        {
+            callback(null, index)
+        }
+    }))
 }
 
 function storeGame(game, callback)
@@ -112,13 +151,15 @@ function createGame(game, callback)
         var game_id = result.rows[0].game_id
         console.log('Created game "' + game_id + '".')
 
+        var owner_key = crypto.randomBytes(20).toString("hex")
+        database.query('INSERT INTO "Players" ("game_id","key") VALUES ($1,$2) RETURNING("game_id")', [game_id,owner_key])
         for (var i = 0; i < gamestate.getPlayers().length; ++i)
         {
             var key = crypto.randomBytes(20).toString("hex")
             database.query('INSERT INTO "Players" ("game_id","index","key") VALUES ($1,$2,$3) RETURNING("game_id")', [game_id,i,key])
             keys.push(key)
         }
-        callback(null, game_id, keys)
+        callback(null, game_id, owner_key)
     }))
 }
 
@@ -150,9 +191,16 @@ function onConnection(client)
             else
             {
                 game_id = new_game_id
-                getPlayerIndex(game_id, player_key, function(index) {
-                    if (index >= 0) player_index = index
-                    client.emit('game', game.state.objectify(), player_index)
+                getPlayerIndexOrKeys(game_id, player_key, function(error, index, keys) {
+                    if (error)
+                    {
+                        client.emit('error-message', "Failed to verify player keys!")
+                    }
+                    else
+                    {
+                        player_index = index
+                        client.emit('game', game.state.objectify(), index, keys)
+                    }
                 })
             }
         })
@@ -332,7 +380,7 @@ exports.listMyGames = function(username,callback)
                 "createdAt":  new Date(row.created_at),
                 "updatedAt":  new Date(row.updated_at),
                 "nextPlayer": row.next_player,
-                "myPlayer":   row.my_player,
+                "myPlayer":   row.my_player === null ? -1 : row.my_player,
                 "myKey":      row.key,
                 "online":     games[game_id] ? games[game_id].clients.length : 0 })
         }
@@ -351,7 +399,7 @@ exports.createAccount = function(username, salt, passkey, callback)
     }
 
     username = username.toLowerCase()
-    if (!username.match(/^[a-z][a-z0-9]*$/))
+    if (!username.match(/^[a-z][a-z0-9]+$/))
     {
         callback(new Error("username must start with a letter, and may contain only ASCII letters and digits"))
         return
@@ -425,7 +473,7 @@ exports.storePlayerKey = function(username, game_id, player_key, store, callback
     }
     if (typeof store != 'boolean')
     {
-        database.query( 'SELECT "username" FROM "Players" WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 LIMIT 1',
+        database.query( 'SELECT "username" FROM "Players" WHERE "game_id"=$1 AND "key"=$2 LIMIT 1',
                         [game_id, player_key], propagateError(callback, function(result) {
             if (result.rows.length == 0)
             {
@@ -438,14 +486,14 @@ exports.storePlayerKey = function(username, game_id, player_key, store, callback
     else
     if (store)
     {
-        database.query('UPDATE "Players" SET username=$3 WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 AND username IS NULL',
+        database.query('UPDATE "Players" SET username=$3 WHERE "game_id"=$1 AND "key"=$2 AND username IS NULL',
                        [game_id, player_key, username], propagateError(callback, function(result){
             callback(null, result.rowCount > 0)
         }))
     }
     else
     {
-        database.query('UPDATE "Players" SET username=NULL WHERE "game_id"=$1 AND "key"=$2 AND "index" >= 0 AND username=$3',
+        database.query('UPDATE "Players" SET username=NULL WHERE "game_id"=$1 AND "key"=$2 AND username=$3',
                        [game_id, player_key, username], propagateError(callback, function(result){
             callback(null, false)
         }))
