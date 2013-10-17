@@ -332,8 +332,8 @@ exports.listen = function(server, store)
     // Configure socket.io for use on Heroku:
     // https://devcenter.heroku.com/articles/using-socket-io-with-node-js-on-heroku
     var io = socket_io.listen(server)
-    io.set("transports", ["xhr-polling", "jsonp-polling"])
-    io.set("polling duration", 10)
+    //io.set("transports", ["xhr-polling", "jsonp-polling"])
+    //io.set("polling duration", 10)
     io.set("log level", 1)
     io.sockets.on('connection', onConnection)
 }
