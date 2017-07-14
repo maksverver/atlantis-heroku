@@ -65,10 +65,16 @@ function recreate(gamestate)
 function fixEventOffset(event, element)
 {
     // This is retarded. JavaScript in the browser fucking sucks.
-    if (!event.hasOwnProperty('offsetX'))
-    {
-        event.offsetX = event.layerX - element.offsetLeft
-        event.offsetY = event.layerY - element.offsetTop
+    if (event.hasOwnProperty('offsetX')) {
+	return {
+            offsetX: event.offsetX,
+            offsetY: event.offsetY,
+        }
+    } else {
+	return {
+            offsetX: event.layerX - element.offsetLeft,
+            offsetY: event.layerY - element.offsetTop,
+        }
         /* `element` has an attribute `offsetParent` too,
            but apparently adding offsets recusively doesn't work! */
     }
