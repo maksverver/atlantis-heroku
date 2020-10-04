@@ -202,18 +202,18 @@ SVG color name string) and "name" (which specifies the player's human-readable
 name as a string). Example:
 
     "players": [
-        {   "name":     "John"
-            "color":    "red"
+        {   "name":     "John",
+            "color":    "red",
             "stacks":
                 {   "a1":  1,
                     "a2":  0,
                     "b1": -2
-                },
+                }
         },
         {   "name":     "Mary",
             "color":    "Blue",
             "stacks":
-                {   "c3": 2
+                {   "c3": 2,
                     "d4": 2
                 }
         }
