@@ -4,7 +4,7 @@
           "author": "Maks Verver <maksverver@geocities.com>",
           "dependencies": {
                     "express": "3.2.x",
-                    "pg": "6.4.x",
+                    "pg": "8.0.x",
                     "socket.io": "0.9.x"
           },
           "engines": {
