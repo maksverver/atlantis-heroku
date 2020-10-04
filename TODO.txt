@@ -17,6 +17,13 @@ HTML:
   - add sound effects (especially to notify player of his turn)
   - should highlight "my" player more clearly
 
+Rules:
+  - Explain how to play online (see TODO in rules.html);
+    maybe create a separate page?
+  - Show an example game from start to finish.
+    I already have a sample game in rules.html; just need to create a widget
+    that allows stepping through it move by move.
+
 Setup mode:
   - should have a "back" button 
   - support single-player mode

@@ -91,7 +91,7 @@ function parse(descr)
         if (m) return Coords(decodeX(m[1]), parseInt(m[2], 10) - 1)
         // NOTE: falls through
     default:
-        return NULL
+        return null
     }
 }
 

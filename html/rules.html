@@ -1,0 +1,1351 @@
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="style/base.css">
+<link rel="stylesheet" type="text/css" href="style/rules.css">
+<title>Atlantis Game Rules</title>
+</head>
+<body>
+
+<script src="require.js"></script>
+<script>
+var rules = require('./js/client/rules.js')
+var GameState = require('./js/common/GameState.js');
+var MoveSelection = require('./js/common/MoveSelection.js');
+
+function defineFigure(canvasId, definition) {
+  const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      console.warn('Missing figure canvas (id=' + canvasId + ')')
+    } else if (!(canvas instanceof HTMLCanvasElement)) {
+      console.warn('Element is not a canvas (id=' + canvasId + ')')
+    } else {
+      const gamestate = new GameState(definition.gamestate);
+      const selection = definition.selection == undefined ? undefined : new MoveSelection(gamestate, definition.selection);
+      rules.drawBoardFigure(canvas, gamestate, selection, definition.annotations);
+    }
+}
+</script>
+
+<div class="page">
+<h1>Atlantis Game Rules</h1>
+<p>
+Atlantis is an abstract strategic board game for 2 to 6 players (best played with 2, 3 or 6 players).
+Each game takes around 1 to 3 hours to play, depending on the number of players and the size of the board.
+</p>
+
+<h2>Table of contents</h2>
+<ul>
+  <li><a href="#history">History</a></li>
+  <li><a href="#game-material">Game material</a></li>
+  <li><a href="#board-setup">Board setup</a></li>
+  <li><a href="#game-play">Game play</a>
+    <ul>
+      <li><a href="#phase-1-movement">Phase 1: Movement</a></li>
+      <li><a href="#phase-2-explosion">Phase 2: Explosion</a></li>
+      <li><a href="#phase-3-growth">Phase 3: Growth</a></li>
+    </ul>
+  </li>
+  <li><a href="#goal-of-the-game">Goal of the game</a></li>
+  <li><a href="#strategy">Strategy</a></li>
+  <li><a href="#suggestions-for-playing-with-4-or-5-players">Suggestions for playing with 4 or 5 players</a></li>
+  <!--
+    <li><a href="#how-to-play-online">How to play online</a></li>
+  -->
+</ul>
+
+<h2 id="history">History</h2>
+<p>
+Atlantis was invented by Martin Medema in 1980 (?), while he was a student at the University of Twente in Enschede, the Netherlands.
+The game was played often at the university games club Fanaat, and from there spread across campus.
+It was never produced commercially, so enthusiastic players would craft the necessary game materials themselves.
+The online version aims to make it easier for people to get to know the game.
+</p>
+
+<h2 id="game-material">Game material</h2>
+<p>Atlantis is played using:</p>
+
+<ul>
+  <li><b>Board segments.</b> Each segment consists of seven hexagonal fields.</li>
+  <li><b>Colored stones.</b>
+    <ul>
+      <li>Stones of six different colors (one color per player)</li>
+      <li>White stones to mark growing fields</li>
+      <li>Black stones to mark dead fields</li>
+    </ul>
+  </li>
+</ul>
+
+<p>Traditional stones are flat (like draughts pieces, but smaller) so that they can be stacked.
+Each field should be able to support a stack of up to six stones of a single color.</p>
+
+<p>In the online version, stones are drawn side-by-side instead of on top of each other, and white and black stones are not used.
+Instead, live, growing and dead fields are drawn with a yellow, green or blue background respectively.</p>
+
+<p>The figure below shows a game in progress, with three players: red, green and blue. For illustration, some of the fields are marked with letters:</p>
+
+<ol type="a">
+  <li>The seven fields labeled <em>a</em> form a single <em>board segment</em>. Segments can be identified by the thick black line drawn around their border.</li>
+  <li>The fields labeled <em>b</em> are examples of <em>dead fields</em> (drawn blue).</li>
+  <li>The fields labeled <em>c</em> are examples of <em>live fields</em> (drawn yellow); one of them contains two stones belonging to the blue player.</li>
+  <li>The fields labeled <em>d</em> are examples of <em>growing fields</em> (drawn green), beloning to the green and red players.</li>
+</ol>
+<figure>
+  <canvas class="board" id="figure-sample-game-1-canvas" width="450" height="450"></canvas>
+  <figcaption>A game in progress between three players</figcaption>
+</figure>
+
+<script>
+sampleGameState1 = {
+  "format": "Atlantis trancript",
+  "version": "1.0",
+  "segments": [
+    [ "b2", "c2", "c3", "b3", "a2", "a1", "b1" ],
+    [ "c5", "d5", "d6", "c6", "b5", "b4", "c4" ],
+    [ "e4", "f4", "f5", "e5", "d4", "d3", "e3" ],
+    [ "d8", "e8", "e9", "d9", "c8", "c7", "d7" ],
+    [ "f7", "g7", "g8", "f8", "e7", "e6", "f6" ],
+    [ "h6", "i6", "i7", "h7", "g6", "g5", "h5" ],
+    [ "e11", "f11", "f12", "e12", "d11", "d10", "e10" ],
+    [ "g10", "h10", "h11", "g11", "f10", "f9", "g9" ],
+    [ "i9", "j9", "j10", "i10", "h9", "h8", "i8" ],
+    [ "k8", "l8", "l9", "k9", "j8", "j7", "k7" ],
+    [ "f14", "g14", "g15", "f15", "e14", "e13", "f13" ],
+    [ "h13", "i13", "i14", "h14", "g13", "g12", "h12" ],
+    [ "j12", "k12", "k13", "j13", "i12", "i11", "j11" ],
+    [ "l11", "m11", "m12", "l12", "k11", "k10", "l10" ],
+    [ "n10", "o10", "o11", "n11", "m10", "m9", "n9" ]
+  ],
+  "players": [
+    {
+      "color": "red",
+      "stacks": {
+        "b2": 1,
+        "c2": 1,
+        "c3": 1,
+        "b3": 1,
+        "a2": 1,
+        "a1": 1,
+        "b1": 1
+      }
+    },
+    {
+      "color": "green",
+      "stacks": {
+        "f14": 1,
+        "g14": 1,
+        "g15": 1,
+        "f15": 1,
+        "e14": 1,
+        "e13": 1,
+        "f13": 1
+      }
+    },
+    {
+      "color": "blue",
+      "stacks": {
+        "n10": 1,
+        "o10": 1,
+        "o11": 1,
+        "n11": 1,
+        "m10": 1,
+        "m9": 1,
+        "n9": 1
+      }
+    }
+  ],
+  "turns": [
+    [ [ "b1", "c2" ] ],
+    [ [ "e14", "e13" ] ],
+    [ [ "n11", "o11" ] ],
+    [ [ "c2", "a2" ] ],
+    [ [ "e13", "g15" ] ],
+    [ [ "n10", "o11" ] ],
+    [ [ "b2", "b5" ] ],
+    [ [ "f14", "i14" ] ],
+    [ [ "m11", "k11" ], [ "l8", "l9" ] ],
+    [ [ "b1", "b2" ], [ "b4", "c5" ] ],
+    [ [ "g14", "g12" ], [ "h14", "h13" ] ],
+    [ [ "l9", "l12" ], [ "k11", "k13" ] ],
+    [ [ "c6", "c5" ], [ "b3", "e3" ] ],
+    [ [ "g14", "g12" ], [ "i13", "h13" ] ],
+    [ [ "l8", "l9" ], [ "l12", "k12" ] ],
+    [ [ "b2", "e5" ], [ "e4", "e5" ], [ "c5", "c8" ] ],
+    [ [ "f13", "f11" ], [ "h13", "f11" ] ],
+    [ [ "k12", "k13" ], [ "l10", "l12" ], [ "l9", "i9" ] ],
+    [ [ "e5", "h5" ], [ "d8", "c7" ], [ "c6", "c7" ], [ "b1", "c2" ] ],
+    [ [ "f13", "f10" ], [ "e12", "e10" ], [ "g12", "d9" ] ],
+    [ [ "m11", "k9" ], [ "k12", "i10" ] ],
+    [ [ "c2", "d3" ], [ "d7", "c6" ], [ "c5", "c6" ], [ "e5", "e4" ], [ "h6", "i6" ] ],
+    [ [ "f10", "f7" ], [ "f11", "f7" ], [ "h13", "h14" ] ] /*,
+    [ [ "k9", "i9" ], [ "i10", "i9" ], [ "l11", "m12" ], [ "j12", "k12" ] ],
+    [ [ "d7", "d8" ], [ "d3", "d6" ], [ "b4", "c5" ], [ "c3", "c4" ], [ "g5", "h6" ] ],
+    [ [ "h13", "h14" ], [ "e10", "g10" ], [ "g7", "g8" ] ],
+    [ [ "m11", "l11" ], [ "j9", "i8" ] ],
+    [ [ "d6", "g9" ], [ "e8", "d7" ], [ "h6", "i7" ], [ "e4", "e6" ] ],
+    [ [ "g10", "g8" ], [ "g13", "g11" ], [ "f13", "f12" ] ],
+    [ [ "l11", "i8" ], [ "j12", "j13" ], [ "j10", "i10" ] ],
+    [ [ "f4", "h6" ], [ "j7", "i7" ], [ "c5", "f8" ], [ "e7", "e8" ], [ "e9", "f9" ] ],
+    [ [ "g8", "e8" ], [ "g12", "h13" ] ],
+    [ [ "k11", "k8" ], [ "j9", "j8" ], [ "j12", "h10" ] ],
+    [ [ "d6", "f8" ], [ "e8", "f8" ], [ "f9", "f8" ], [ "g6", "h7" ], [ "e6", "f6" ] ],
+    [ [ "f12", "g13" ], [ "h13", "g13" ] ],
+    [ [ "j8", "j7" ], [ "i10", "g8" ], [ "j11", "i10" ], [ "h10", "j12" ], [ "m11", "l11" ] ],
+    [ [ "f9", "d9" ], [ "c4", "d5" ], [ "e6", "f6" ], [ "g5", "g7" ] ],
+    [ [ "g11", "i13" ], [ "g12", "e10" ], [ "f12", "d10" ] ],
+    [ [ "l11", "j11" ], [ "h8", "h7" ], [ "j11", "h9" ], [ "g8", "g7" ] ],
+    [ [ "d5", "f5" ], [ "e6", "f6" ], [ "f10", "f9" ] ],
+    [ [ "h12", "f10" ], [ "e12", "e11" ] ],
+    [ [ "j11", "h9" ], [ "i10", "f10" ], [ "k8", "j7" ] ],
+    [ [ "g6", "g8" ], [ "f6", "g7" ], [ "c5", "d5" ], [ "j7", "k8" ] ],
+    [ [ "f12", "h12" ], [ "g12", "i12" ] ],
+    [ [ "k8", "k9" ], [ "j9", "l11" ], [ "k11", "l11" ], [ "h10", "h11" ] ],
+    [ [ "g5", "g6" ], [ "f5", "g6" ] ],
+    [ [ "e11", "e10" ], [ "g11", "g12" ] ],
+    [ [ "j11", "i10" ], [ "l11", "i11" ], [ "i10", "h10" ] ],
+    [ [ "g9", "g11" ], [ "g6", "g9" ], [ "g7", "f6" ] ],
+    [ [ "e12", "f12" ] ],
+    [ [ "j11", "j10" ], [ "k9", "k10" ] ],
+    [ [ "g7", "f6" ], [ "g10", "f10" ] ],
+    [ [ "g12", "e10" ], [ "f12", "f11" ] ],
+    [ [ "j11", "k11" ], [ "k10", "k9" ] ],
+    [ [ "g11", "h11" ] ],
+    [],
+    [ [ "j10", "j8" ], [ "j11", "k11" ], [ "k9", "k8" ] ],
+    [ [ "f10", "f12" ] ],
+    [ [ "g12", "f12" ] ] */
+  ]
+};
+
+defineFigure("figure-sample-game-1-canvas", {
+  gamestate: sampleGameState1,
+  annotations: {
+    f9: 'a',
+    f10: 'a',
+    g9: 'a',
+    g10: 'a',
+    g11: 'a',
+    h10: 'a',
+    h11: 'a',
+
+    b5: 'b',
+    e13: 'b',
+    f14: 'b',
+    g15: 'b',
+
+    k9: 'c',
+    k10: 'c',
+    j9: 'c',
+
+    h5: 'd',
+    f7: 'd',
+  },
+  //annotations: {},
+});
+</script>
+
+<h2 id="board-setup">Board setup</h2>
+<p>Atlantis is played on a board made by connecting several board segments.
+Many different shapes are possible, and different shapes call for different strategies.
+There are no definite rules or restrictions on which boards may be constructed, but for reasons of fairness, symmetrical shapes are usually preferred.</p>
+
+<p>For beginners, some suitable starting shapes are:</p>
+
+<ul>
+  <li>For 2 or 3 players:
+    <ul>
+      <li>triangle with a side of 6 or 7 segments, optionally with the corner segments removed</li>
+      <li>hexagon with a side of 3 or 4 segments</li>
+    </ul>
+  </li>
+  <li>For 6 players:
+    <ul>
+      <li>hexagon with a side of 5 segments</li>
+    </ul>
+  </li>
+</ul>
+
+<figure class="p50">
+  <canvas class="board" id="figure-setup-3-players-canvas" width="300" height="300"></canvas>
+  <figcaption>Example starting position for 3 players</figcaption>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-setup-6-players-canvas" width="300" height="300"></canvas>
+  <figcaption style="text-align: center">Example starting position for 6 players</figcaption>
+</figure>
+
+<script>
+defineFigure("figure-setup-3-players-canvas", {
+    gamestate: {
+      "format": "Atlantis trancript",
+      "version": "1.0",
+      "segments": [
+        [ "c5", "d5", "d6", "c6", "b5", "b4", "c4" ],
+        [ "e4", "f4", "f5", "e5", "d4", "d3", "e3" ],
+        [ "d8", "e8", "e9", "d9", "c8", "c7", "d7" ],
+        [ "f7", "g7", "g8", "f8", "e7", "e6", "f6" ],
+        [ "h6", "i6", "i7", "h7", "g6", "g5", "h5" ],
+        [ "e11", "f11", "f12", "e12", "d11", "d10", "e10" ],
+        [ "g10", "h10", "h11", "g11", "f10", "f9", "g9" ],
+        [ "i9", "j9", "j10", "i10", "h9", "h8", "i8" ],
+        [ "k8", "l8", "l9", "k9", "j8", "j7", "k7" ],
+        [ "f14", "g14", "g15", "f15", "e14", "e13", "f13" ],
+        [ "h13", "i13", "i14", "h14", "g13", "g12", "h12" ],
+        [ "j12", "k12", "k13", "j13", "i12", "i11", "j11" ],
+        [ "l11", "m11", "m12", "l12", "k11", "k10", "l10" ],
+        [ "n10", "o10", "o11", "n11", "m10", "m9", "n9" ],
+        [ "g17", "h17", "h18", "g18", "f17", "f16", "g16" ],
+        [ "i16", "j16", "j17", "i17", "h16", "h15", "i15" ],
+        [ "k15", "l15", "l16", "k16", "j15", "j14", "k14" ],
+        [ "m14", "n14", "n15", "m15", "l14", "l13", "m13" ],
+        [ "o13", "p13", "p14", "o14", "n13", "n12", "o12" ],
+        [ "q12", "r12", "r13", "q13", "p12", "p11", "q11" ],
+        [ "j19", "k19", "k20", "j20", "i19", "i18", "j18" ],
+        [ "l18", "m18", "m19", "l19", "k18", "k17", "l17" ],
+        [ "n17", "o17", "o18", "n18", "m17", "m16", "n16" ],
+        [ "p16", "q16", "q17", "p17", "o16", "o15", "p15" ],
+        [ "r15", "s15", "s16", "r16", "q15", "q14", "r14" ]
+      ],
+      "players": [
+        {
+          "color": "red",
+          "stacks": {
+            "e4": 1,
+            "f4": 1,
+            "f5": 1,
+            "e5": 1,
+            "d4": 1,
+            "d3": 1,
+            "e3": 1
+          }
+        },
+        {
+          "color": "green",
+          "stacks": {
+            "r15": 1,
+            "s15": 1,
+            "s16": 1,
+            "r16": 1,
+            "q15": 1,
+            "q14": 1,
+            "r14": 1
+          }
+        },
+        {
+          "color": "blue",
+          "stacks": {
+            "g17": 1,
+            "h17": 1,
+            "h18": 1,
+            "g18": 1,
+            "f17": 1,
+            "f16": 1,
+            "g16": 1
+          }
+        }
+      ]
+    }
+  });
+defineFigure("figure-setup-6-players-canvas", {
+    gamestate: {
+      "format": "Atlantis trancript",
+      "version": "1.0",
+      "segments": [
+        [ "c5", "d5", "d6", "c6", "b5", "b4", "c4" ],
+        [ "e4", "f4", "f5", "e5", "d4", "d3", "e3" ],
+        [ "d8", "e8", "e9", "d9", "c8", "c7", "d7" ],
+        [ "f7", "g7", "g8", "f8", "e7", "e6", "f6" ],
+        [ "h6", "i6", "i7", "h7", "g6", "g5", "h5" ],
+        [ "e11", "f11", "f12", "e12", "d11", "d10", "e10" ],
+        [ "g10", "h10", "h11", "g11", "f10", "f9", "g9" ],
+        [ "i9", "j9", "j10", "i10", "h9", "h8", "i8" ],
+        [ "k8", "l8", "l9", "k9", "j8", "j7", "k7" ],
+        [ "f14", "g14", "g15", "f15", "e14", "e13", "f13" ],
+        [ "h13", "i13", "i14", "h14", "g13", "g12", "h12" ],
+        [ "j12", "k12", "k13", "j13", "i12", "i11", "j11" ],
+        [ "l11", "m11", "m12", "l12", "k11", "k10", "l10" ],
+        [ "n10", "o10", "o11", "n11", "m10", "m9", "n9" ],
+        [ "g17", "h17", "h18", "g18", "f17", "f16", "g16" ],
+        [ "i16", "j16", "j17", "i17", "h16", "h15", "i15" ],
+        [ "k15", "l15", "l16", "k16", "j15", "j14", "k14" ],
+        [ "m14", "n14", "n15", "m15", "l14", "l13", "m13" ],
+        [ "o13", "p13", "p14", "o14", "n13", "n12", "o12" ],
+        [ "q12", "r12", "r13", "q13", "p12", "p11", "q11" ],
+        [ "j19", "k19", "k20", "j20", "i19", "i18", "j18" ],
+        [ "l18", "m18", "m19", "l19", "k18", "k17", "l17" ],
+        [ "n17", "o17", "o18", "n18", "m17", "m16", "n16" ],
+        [ "p16", "q16", "q17", "p17", "o16", "o15", "p15" ],
+        [ "r15", "s15", "s16", "r16", "q15", "q14", "r14" ]
+      ],
+      "players": [
+        {
+          "color": "red",
+          "stacks": {
+            "e4": 1,
+            "f4": 1,
+            "f5": 1,
+            "e5": 1,
+            "d4": 1,
+            "d3": 1,
+            "e3": 1
+          }
+        },
+        {
+          "color": "green",
+          "stacks": {
+            "r15": 1,
+            "s15": 1,
+            "s16": 1,
+            "r16": 1,
+            "q15": 1,
+            "q14": 1,
+            "r14": 1
+          }
+        },
+        {
+          "color": "blue",
+          "stacks": {
+            "g17": 1,
+            "h17": 1,
+            "h18": 1,
+            "g18": 1,
+            "f17": 1,
+            "f16": 1,
+            "g16": 1
+          }
+        }
+      ]
+    }
+  });
+</script>
+
+<p>Each player starts with some stones on the board; typically seven stones covering a single segment near a corner of the board.
+Starting on a segment on the side of the board is possible too, which causes a slower start of the game.
+Starting near the middle is not recommended because of the difficulty of creating initial growing fields.</p>
+
+<p>Beginners may be tempted to play on small boards initially, fearing that games played on large boards take too long or become too complex.
+However, play time does not grow linearly with the size of the board, and large boards do have some advantages:
+they give players more room to recover from mistakes, and make it easier to fence off territory.
+Therefore, beginners should not be afraid to play on larger boards.</p>
+
+<h2 id="game-play">Game play</h2>
+<p>Each player controls the stones of a single color.
+Players take turns in a fixed order, usually corresponding with the placement of their stones on the board (e.g., in clockwise order).</p>
+
+<p>Each field may contain stones belonging to a single player only.
+Additionally, each field is either alive, growing, or dead.
+Initially, all fields are alive.
+Fields can explode, the details of which are discussed later.
+When a live field explodes, it becomes a growing field.
+When a growing field explodes, it becomes a dead field.
+Dead fields cannot contain any stones, and are equivalent to nonexistent fields beyond the edges of the initial game board.</p>
+
+<p>A player’s turn consists of three phases:</p>
+
+<ol>
+<li>Movement</li>
+<li>Explosion</li>
+<li>Growth</li>
+</ol>
+
+<p>A player only makes decisions during the movement phase; the other two phases are deterministically executed according to the rules described below.<p>
+
+<h3 id="phase-1-movement">Phase 1: Movement</h3>
+<p>During the movement phase, a player can make any number of moves (including none at all).
+A move consists of taking some stones from a field and moving them to a different field, according to the following rules:</p>
+
+<ol>
+<li>Moves are made in a straight line in one of six possible directions.</li>
+<li>The number of stones moved must exactly equal the total distance moved.</li>
+<li>Moves can only cross live fields. (Stated differently, moves cannot cross growing fields, dead fields, or the edge of the board. In particular, players cannot move stones from or onto growing fields.)</li>
+<li>Moves may cross fields occupied by another player; in that case these stones are eliminated one-to-one, so that both players lose an equal number of stones.</li>
+<li>Moves must start from different board segments. (Multiple moves starting from different segments but ending on the same segment are allowed.)</li>
+<li>Each stone may participate in at most one move. (If a stone is part of a stack that is moved from one segment to another, then a second move from that segment may not move starting from that segment cannot include that same stone.)</li>
+</ol>
+
+<p>Below is an example. Starting from the stack of 3 red stones, the red player can choose to move:</p>
+<ul>
+  <li>exactly 1 stone to one of the fields labeled <em>a</em>, or</li>
+  <li>exactly 2 stones to one of the fields labeled <em>b</em>, or</li>
+  <li>exactly 3 stones to one of the fields labeled <em>c</em>.</li>
+</ul>
+
+<figure>
+  <canvas class="board" id="figure-movement-1-canvas" width="300" height="300"></canvas>
+</figure>
+
+<p>Note that the red player does not have to move from the stack of 3 red stones; it's possible to move from a different field as well.
+However, it's not possible for red to make more than one move this turn, since all red stones are on the same board segment (rule 5).</p>
+
+<p>Here are a few other things that are forbidden by the rules:</p>
+
+<ul>
+  <li>It's not possible to move to field <em>x</em>, because it does not lie on a straight line in one of the six directions (rule 1).</li>
+  <li>It's not possible to move two stones to a field labeled <em>a</em>, because the number of stones must equal the distance moved (rule 2).</li>
+  <li>It's not possible to move to the fields labeled <em>y</em>, which are not live fields (rule 3).</li>
+  <li>If the player moves two stones to field <em>b</em>, it's not possible to move the stones again.
+  Although that second move would start from a different board segment, so it would not violate rule 5, it would violate rule 6, which says the same stones cannot move twice in one turn.
+  </li>
+</ul>
+
+<p>Finally, an example of rule 4 (stones are eliminated one-to-one).
+Suppose red decides to move to <em>c</em>. During the move, red's three stones cross two of blue's stones.
+Red and blue lose two stones each, and red ends up with a single stone at the destination field.</p>
+
+<figure class="p50">
+  <canvas class="board" id="figure-movement-2-canvas" width="300" height="300"></canvas>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-movement-3-canvas" width="300" height="300"></canvas>
+</figure>
+
+<script>
+movementSampleSegments1 = [
+  [ "b2", "c2", "c3", "b3", "a2", "a1", "b1" ],
+  [ "c5", "d5", "d6", "c6", "b5", "b4", "c4" ],
+  [ "e4", "f4", "f5", "e5", "d4", "d3", "e3" ]
+];
+movementSamplePlayers1 = [
+  {
+    "color": "red",
+    "stacks": {
+      "b2": 3,
+      "c3": 1,
+      "b3": 2,
+      "a2": -1,
+      "a1": -1,
+      "b1": 1
+    }
+  },
+  {
+    "color": "blue",
+    "stacks": {
+      "c5": 1,
+      "d5": 1,
+      "d6": 1,
+      "c6": 1,
+      "b5": 1,
+      "b4": 1,
+      "c4": 1
+    }
+  }
+];
+movementSampleState1 = {
+  "format": "Atlantis trancript",
+  "version": "1.0",
+  "segments": movementSampleSegments1,
+  "players": movementSamplePlayers1,
+  "turns": []
+};
+defineFigure("figure-movement-1-canvas", {
+  gamestate: movementSampleState1,
+  selection: {
+    phase: 1,
+    selected: "b2",
+  },
+  annotations: {
+    b1: 'a',
+    c2: 'a',
+    c3: 'a',
+    b3: 'a',
+    d4: 'b',
+    b4: 'b',
+    b5: 'c',
+    e5: 'c',
+    e4: 'x',
+    a1: 'y',
+    a2: 'y',
+    d2: 'y',
+  }
+});
+defineFigure("figure-movement-2-canvas", {
+  gamestate: movementSampleState1,
+  selection: {
+    phase: 1,
+    moves: [['b2', 'b5']],
+  },
+  annotations: {
+    'b5': 'c',
+  }
+});
+defineFigure("figure-movement-3-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments1,
+    "players": movementSamplePlayers1,
+    turns: [
+      [['b2', 'b5']]
+    ],
+  },
+});
+</script>
+
+<p>If blue had had more stones, as in the example below, then red's stones would be eliminated completely and the destination field would remain occupied by blue.
+This is still a valid move for red.</p>
+
+<figure class="p50">
+  <canvas class="board" id="figure-movement-4-canvas" width="300" height="300"></canvas>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-movement-5-canvas" width="300" height="300"></canvas>
+</figure>
+
+<p>Recall that the number of stones moved must equal the distance to the destination field. This is true regardless of how many stones actually reach the destination.
+In the example below, the red player can eliminate only one of blue's stones, because moving two red stones would imply that the destination field lies beyond the edge of the board.
+</p>
+
+<script>
+movementSamplePlayers2 = [
+  {
+    "color": "red",
+    "stacks": {
+      "b2": 3,
+      "c3": 1,
+      "b3": 2,
+      "a2": -1,
+      "a1": -1,
+      "b1": 1
+    }
+  },
+  {
+    "color": "blue",
+    "stacks": {
+      "c5": 1,
+      "d5": 1,
+      "d6": 1,
+      "c6": 1,
+      "b5": 2,
+      "b4": 2,
+      "c4": 1
+    }
+  }
+];
+movementSampleState2 = {
+  "format": "Atlantis trancript",
+  "version": "1.0",
+  "segments": movementSampleSegments1,
+  "players": movementSamplePlayers2,
+  "turns": []
+};
+defineFigure("figure-movement-4-canvas", {
+  gamestate: movementSampleState2,
+  selection: {
+    phase: 1,
+    moves: [['b2', 'b5']],
+  },
+  annotations: {
+    'b5': 'c',
+  }
+});
+defineFigure("figure-movement-5-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments1,
+    "players": movementSamplePlayers2,
+    "turns": [
+      [['b2', 'b5']]
+    ]
+  }
+});
+</script>
+
+<figure class="p50">
+  <canvas class="board" id="figure-movement-6-canvas" width="300" height="150"></canvas>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-movement-7-canvas" width="300" height="150"></canvas>
+</figure>
+
+<script>
+movementSampleSegments2 = [
+  [ "b2", "c2", "c3", "b3", "a2", "a1", "b1" ],
+];
+movementSamplePlayers2 = [
+  {
+    "color": "red",
+    "stacks": {"b2": 2}
+  },
+  {
+    "color": "blue",
+    "stacks": {"a2": 2}
+  }
+];
+defineFigure("figure-movement-6-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments2,
+    "players": movementSamplePlayers2,
+    "turns": [],
+  },
+  selection: {
+    phase: 1,
+    moves: [['b2', 'a2']],
+  }
+});
+
+defineFigure("figure-movement-7-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments2,
+    "players": movementSamplePlayers2,
+    "turns": [
+      [['b2', 'a2']]
+    ],
+  },
+});
+</script>
+
+<p>It's possible to make multiple moves that end on the same field (as long as they start from different segments, see rule 5). In fact, this is often a good way to combine stones into large stacks.</p>
+
+<figure class="p50">
+  <canvas class="board" id="figure-movement-8-canvas" width="300" height="300"></canvas>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-movement-9-canvas" width="300" height="300"></canvas>
+</figure>
+
+<script>
+movementSampleSegments4 = [
+  [ "b2", "c2", "c3", "b3", "a2", "a1", "b1" ],
+  [ "c5", "d5", "d6", "c6", "b5", "b4", "c4" ],
+  [ "e4", "f4", "f5", "e5", "d4", "d3", "e3" ]
+];
+movementSamplePlayers4 = [
+  {
+    "color": "red",
+    "stacks": {
+      "d6": 1,
+      "d5": 1,
+      "d3": 1,
+      "d4": 1,
+      "e4": 1,
+      "e5": 1,
+      "b2": 3,
+    }
+  }
+];
+movementSampleMoves4 = [
+  ['b2', 'd4'],
+  ['d5', 'd4'],
+  ['e5', 'd4']
+];
+defineFigure("figure-movement-8-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments4,
+    "players": movementSamplePlayers4,
+    "turns": [],
+  },
+  selection: {
+    phase: 1,
+    moves: movementSampleMoves4,
+  }
+});
+defineFigure("figure-movement-9-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments4,
+    "players": movementSamplePlayers4,
+    "turns": [movementSampleMoves4],
+  },
+});
+</script>
+
+<p>The order in which moves are executed matters only when they cross fields occupied by an opponent.
+In the example below (left), red can choose to move from <em>a</em> to <em>b</em> and then from <em>c</em> to <em>d</em>, to end with a single stone on <em>d</em> (middle).
+Alternatively, red can execute the moves in the reverse order to end up with a stone on <em>b</em> instead (right).</p>
+
+<figure class="p33">
+  <canvas class="board" id="figure-movement-10-canvas" width="200" height="200"></canvas>
+  <figcaption>Initial position. Red can move from <em>a</em> to <em>b</em>, and from <em>c</em> to <em>d</em>.</figcaption>
+</figure><figure class="p33">
+  <canvas class="board" id="figure-movement-11-canvas" width="200" height="200"></canvas>
+  <figcaption>After moving to <em>b</em> first and to <em>d</em> second, red has a stone on <em>d</em>.</figcaption>
+</figure><figure class="p33">
+  <canvas class="board" id="figure-movement-12-canvas" width="200" height="200"></canvas>
+  <figcaption>After moving to <em>d</em> first, and to <em>b</em> second, red has a stone on <em>b</em>.</figcaption>
+</figure>
+
+<script>
+movementSampleSegments5 = [
+  [ "c3" ],
+  [ "d5", "c4" ],
+  [ "e4", "e5", "d4", "d3" ]
+];
+movementSamplePlayers5 = [
+  {
+    "color": "red",
+    "stacks": {
+      "c4": 2,
+      "d3": 2,
+    }
+  },
+  {
+    "color": "blue",
+    "stacks": {
+      "d4": 3,
+    }
+  }
+];
+movementSampleAnnotations5 = {
+  c4: 'a',
+  e4: 'b',
+  d3: 'c',
+  d5: 'd',
+};
+defineFigure("figure-movement-10-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments5,
+    "players": movementSamplePlayers5,
+    "turns": []
+  },
+  annotations: movementSampleAnnotations5,
+});
+defineFigure("figure-movement-11-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments5,
+    "players": movementSamplePlayers5,
+    "turns": [
+      [['c4', 'e4'], ['d3', 'd5']],
+    ]
+  },
+  annotations: movementSampleAnnotations5,
+  selection: {
+    phase: 2,
+    moves: [
+    ],
+  }
+});
+defineFigure("figure-movement-12-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments5,
+    "players": movementSamplePlayers5,
+    "turns": [
+      [['d3', 'd5'], ['c4', 'e4']],
+    ]
+  },
+  annotations: movementSampleAnnotations5,
+  selection: {
+    phase: 2,
+    moves: [
+    ],
+  }
+});
+</script>
+
+<h3 id="phase-2-explosion">Explosion phase</h3>
+<p>After the player has executed his moves, he enters the explosion phase. To explain how explosions work, it is helpful to introduce some additional terminology.</p>
+
+<p>The <em>capacity</em> of a field is the number of adjacent live fields.
+If the number of stones on a field is strictly less than its capacity, the field is called <em>stable</em>.
+Otherwise, it is <em>volatile</em>.
+During the explosion phase, all volatile fields occupied by the current player explode. This includes live fields and growing fields alike.</p>
+
+<p>When a field explodes, all stones are removed from it and redistributed onto the live fields surrounding it.
+Each neighbor receives exactly one stone; any excess stones are discarded
+(when this happens, the exploding field is said to be <em>over capacity</em>).
+If the exploded field was a live field before, it now becomes a growing field for the current player.
+If the exploded field was already a growing field, it becomes a dead field instead.</p>
+
+<p>Note that only live fields are counted and included in the redistribution of stones;
+specifically, growing fields do not count as live neighbors and do not receive stones during the explosion phase.</p>
+
+<p>Explosions continue until all fields occupied by the current player are stable.
+The order in which explosions are resolved does not matter.</p>
+
+<p>Let's look at an example.</p>
+<figure class="p50">
+  <canvas class="board" id="figure-explosion-1-canvas" width="300" height="300"></canvas>
+  <figcaption>During the movement phase, red moves 2 stones to field <em>a</em>, creating a stack of 3.</figcaption>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-explosion-2-canvas" width="300" height="300"></canvas>
+  <figcaption>The explosion phase begins. Field <em>a</em> is volatile because it contains three stones and has three live neighbors. Field <em>b</em> is also volatile, because it has two stones and two live neighbors (the neighboring growing field, <em>c</em>, does not count!)</figcaption>
+</figure>
+
+<figure class="p50">
+  <canvas class="board" id="figure-explosion-3-canvas" width="300" height="300"></canvas>
+  <figcaption>Field <em>a</em> and <em>b</em> have exploded, distributing their stones to neighboring fields.
+    Field <em>a</em> has become a new growing field, and field <em>b</em>, which was a growing field before, has become a dead field.
+    The explosion of field <em>a</em> has reduced the capacity of field <em>d</em> to two, and since it contains two stones, it has become volatile too!</figcaption>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-explosion-4-canvas" width="300" height="300"></canvas>
+  <figcaption>Field <em>d</em> has exploded, and made its neighbor <em>e</em> volatile.</figcaption>
+</figure>
+
+<figure class="p50">
+  <canvas class="board" id="figure-explosion-5-canvas" width="300" height="300"></canvas>
+  <figcaption>Field <em>e</em> has exploded, and made field <em>f</em> volatile. This field is over capacity: it contains four stones but it only has three live neigbors. Each neighbor will receive one stone and the fourth stone is lost.</figcaption>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-explosion-6-canvas" width="300" height="300"></canvas>
+  <figcaption>The new growing field <em>d</em> contains no stones, but it has no neighbors either, so it is volatile and will explode to become a dead field. After that, all fields are stable.</figcaption>
+</figure>
+
+<p>As can be seen in the above example, exploding fields often cause neighboring fields to become volatile too,
+triggering a chain reaction of explosions that can wipe out a large chunk of the board in a single turn.</p>
+
+<p>If a stone is distributed onto a field occupied by an opponent, stones are eliminated on a one-to-one basis,
+as in the movement phase. The figures below shown an example of this.</p>
+
+<figure class="p25">
+  <canvas class="board" id="figure-explosion-7-canvas" width="150" height="150"></canvas>
+  <figcaption>Red moves to <em>a</em>.</figcaption>
+</figure><figure class="p25">
+  <canvas class="board" id="figure-explosion-8-canvas" width="150" height="150"></canvas>
+  <figcaption>Field <em>a</em> explodes.</figcaption>
+</figure><figure class="p25">
+  <canvas class="board" id="figure-explosion-9-canvas" width="150" height="150"></canvas>
+  <figcaption>Field <em>a</em> grows.</figcaption>
+</figure><figure class="p25">
+  <canvas class="board" id="figure-explosion-10-canvas" width="150" height="150"></canvas>
+  <figcaption>End of red's turn.</figcaption>
+</figure>
+
+<p>Note that the red stone that was distributed onto field <em>c</em> has eliminated a blue stone.
+And although exploding field <em>a</em> has made field <em>b</em> volatile, it does not explode while
+it's the red player's turn. It will explode in the explosion phase of the blue player's turn instead.</p>
+
+<script>
+explosionSamplePlayers5 = [
+  {
+    "color": "red",
+    "stacks": {
+      "a1": 1,
+      "b1": 1,
+    }
+  },
+  {
+    "color": "blue",
+    "stacks": {
+      "a2": -2,
+      "b2": 2
+    }
+  }
+];
+explosionSampleAnnotations5 = {
+  "a1": "a",
+  "a2": "b",
+  "b2": "c",
+}
+explosionSampleMoves5 = [["b1", "a1"]];
+defineFigure("figure-explosion-7-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments2,
+    "players": explosionSamplePlayers5,
+    "turns": []
+  },
+  selection: {
+    moves: explosionSampleMoves5,
+    phase: 1
+  },
+  annotations: explosionSampleAnnotations5
+});
+defineFigure("figure-explosion-8-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments2,
+    "players": explosionSamplePlayers5,
+    "turns": []
+  },
+  selection: {
+    moves: explosionSampleMoves5,
+    phase: 2
+  },
+  annotations: explosionSampleAnnotations5
+});
+defineFigure("figure-explosion-9-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments2,
+    "players": explosionSamplePlayers5,
+    "turns": []
+  },
+  selection: {
+    moves: explosionSampleMoves5,
+    phase: 3
+  },
+  annotations: explosionSampleAnnotations5
+});
+defineFigure("figure-explosion-10-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": movementSampleSegments2,
+    "players": explosionSamplePlayers5,
+    "turns": [explosionSampleMoves5]
+  },
+  annotations: explosionSampleAnnotations5
+});
+</script>
+
+
+<h3 id="phase-3-growth">Growth phase</h3>
+<p>After all volatile fields have exploded and all remaining fields are stable, the player moves on to the growth phase.
+In the growth phase, each growing field belonging to the current player gains one additional stone.</p>
+
+<figure class="p50">
+  <canvas class="board" id="figure-growth-1-canvas" width="300" height="300"></canvas>
+  <figcaption>In this example, the red player has three new (<em>a</em>, <em>b</em>, and <em>c</em>) and one preexisting (<em>d</em>) growing field.</figcaption>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-growth-2-canvas" width="300" height="300"></canvas>
+  <figcaption>Each growing field gains one stone. Although field <em>a</em> and </em><em>d</em> have become volatile, they will not explode now, because explosions only happen during a player's explosion phase.</figcaption>
+</figure>
+
+<p>After the growth phase, the player's turn ends, and the next player moves.</p>
+
+<script>
+explosionSampleState1 = {
+  "format": "Atlantis trancript",
+  "version": "1.0",
+  "segments": [
+    [ "b2", "c2", "c3", "b3", "a2", "a1", "b1" ],
+    [ "d1", "e1", "e2", "d2", "c1", "c0", "d0" ],
+    [ "c5", "d5", "d6", "c6", "b5", "b4", "c4" ],
+    [ "e4", "f4", "f5", "e5", "d4", "d3", "e3" ]
+  ],
+  "players": [
+    {
+      "color": "red",
+      "stacks": {
+        "b2": 1,
+        "c2": 2,
+        "a2": 1,
+        "a1": 1,
+        "b1": 2,
+        "f4": -1,
+        "f5": -2,
+        "e4": 2,
+        "e3": 1,
+      }
+    },
+  ]
+};
+explosionSampleMoves1 = [["c2", "a2"]];
+
+defineFigure("figure-explosion-1-canvas", {
+  gamestate: explosionSampleState1,
+  selection: {
+    moves: explosionSampleMoves1,
+    phase: 1
+  },
+  annotations: {
+    a2: "a",
+  }
+});
+defineFigure("figure-explosion-2-canvas", {
+  gamestate: explosionSampleState1,
+  selection: {
+    moves: explosionSampleMoves1,
+    phase: 2,
+    subphase: 0
+  },
+  annotations: {
+    a2: "a",
+    f5: "b",
+    f4: "c",
+  }
+});
+defineFigure("figure-explosion-3-canvas", {
+  gamestate: explosionSampleState1,
+  selection: {
+    moves: explosionSampleMoves1,
+    phase: 2,
+    subphase: 1
+  },
+  annotations: {
+    a2: "a",
+    f5: "b",
+    a1: "d",
+  }
+});
+defineFigure("figure-explosion-4-canvas", {
+  gamestate: explosionSampleState1,
+  selection: {
+    moves: explosionSampleMoves1,
+    phase: 2,
+    subphase: 3
+  },
+  annotations: {
+    b1: "e",
+  }
+});
+defineFigure("figure-explosion-5-canvas", {
+  gamestate: explosionSampleState1,
+  selection: {
+    moves: explosionSampleMoves1,
+    phase: 2,
+    subphase: 4
+  },
+  annotations: {
+    b2: "f",
+  }
+});
+defineFigure("figure-explosion-6-canvas", {
+  gamestate: explosionSampleState1,
+  selection: {
+    moves: explosionSampleMoves1,
+    phase: 2,
+    subphase: 5
+  },
+  annotations: {
+    a1: "d",
+  }
+});
+
+defineFigure("figure-growth-1-canvas", {
+  gamestate: explosionSampleState1,
+  selection: {
+    moves: explosionSampleMoves1,
+    phase: 2,
+    subphase: 6
+  },
+  annotations: {
+    a2: 'a',
+    b2: 'b',
+    b1: 'c',
+    f4: 'd',
+  }
+});
+defineFigure("figure-growth-2-canvas", {
+  gamestate: {
+    "format": "Atlantis trancript",
+    "version": "1.0",
+    "segments": explosionSampleState1.segments,
+    "players": explosionSampleState1.players,
+    "turns": [explosionSampleMoves1],
+  },
+  annotations: {
+    a2: 'a',
+    b2: 'b',
+    b1: 'c',
+    f4: 'd',
+  }
+});
+</script>
+
+<h2 id="goal-of-the-game">Goal of the game</h2>
+<p>The goal of the game is for players to capture as much territory as possible.</p>
+
+<p>A <em>closed region</em> is a maximal connected set of live fields.
+A region is called <em>settled</em> if it contains stones belonging to at most one player,
+and it is not adjacent to any growing fields.</p>
+
+<p>The game ends when all regions are settled.
+Then, each player's score equals the total number of fields in the areas they occupy.
+The player with the highest score wins. Ties are possible.</p>
+
+<figure class="p50">
+  <canvas class="board" id="figure-counting-1-canvas" width="300" height="300"></canvas>
+  <figcaption>The bottom region is red territory.
+The top left region is not yet settled, because it contains stones of two different colors.
+The top right region is not yet settled, because it is adjacent to a growing field. </figcaption>
+</figure><figure class="p50">
+  <canvas class="board" id="figure-counting-2-canvas" width="300" height="300"></canvas>
+  <figcaption>One round later, all regions are settled. Rankings:<br>
+    <ol>
+      <li>Red (20 points)</li>
+      <li>Blue (15 points)</li>
+      <li>Green (12 points)</li>
+    </ol>
+  </figcaption>
+</figure>
+
+<script>
+countingSampleSegments = [
+  [ "b2", "c2", "c3", "b3", "a2", "a1", "b1" ],
+  [ "c5", "d5", "d6", "c6", "b5", "b4", "c4" ],
+  [ "e4", "f4", "f5", "e5", "d4", "d3", "e3" ],
+  [ "d8", "e8", "e9", "d9", "c8", "c7", "d7" ],
+  [ "f7", "g7", "g8", "f8", "e7", "e6", "f6" ],
+  [ "h6", "i6", "i7", "h7", "g6", "g5", "h5" ],
+  [ "e11", "f11", "f12", "e12", "d11", "d10", "e10" ],
+  [ "g10", "h10", "h11", "g11", "f10", "f9", "g9" ],
+  [ "i9", "j9", "j10", "i10", "h9", "h8", "i8" ],
+  [ "k8", "l8", "l9", "k9", "j8", "j7", "k7" ],
+  [ "f14", "g14", "g15", "f15", "e14", "e13", "f13" ],
+  [ "h13", "i13", "i14", "h14", "g13", "g12", "h12" ],
+  [ "j12", "k12", "k13", "j13", "i12", "i11", "j11" ],
+  [ "l11", "m11", "m12", "l12", "k11", "k10", "l10" ],
+  [ "n10", "o10", "o11", "n11", "m10", "m9", "n9" ]
+];
+countingSamplePlayers = [
+  {
+    "color": "red",
+    "stacks": {
+      "a1": 0,
+      "a2": 0,
+      "b5": 0,
+      "c5": 1,
+      "d5": 2,
+      "d8": 0,
+      "e3": 0,
+      "e8": 0,
+      "e9": 0,
+      "d9": 0,
+      "c8": 0,
+      "c7": 0,
+      "d7": 0,
+      "f5": 1,
+      "g7": 1,
+      "e6": 1,
+      "f6": 2,
+      "c6": 0,
+      "d6": 0,
+      "e7": 0,
+      "f7": 0,
+      "f8": 0,
+      "f9": 0,
+      "g8": 0,
+      "g9": 0,
+      "h5": 0,
+      "h6": 0,
+      "h7": 0,
+      "h8": 0,
+      "h9": 0,
+      "h10": 0,
+      "f10": 2,
+    }
+  },
+  {
+    "color":"green",
+    "stacks": {
+      "e10": 3,
+      "e13": 0,
+      "e14": 0,
+      "f13": 0,
+      "f14": 0,
+      "f15": 0,
+      "g13": 0,
+      "g14": 0,
+      "g15": 0,
+      "h12": 0,
+      "h13": 0,
+      "h14": 0,
+      "i12": 0,
+      "i13": 0,
+      "i14": 0,
+    }
+  },
+  {
+    "color":"blue",
+    "stacks": {
+      "i6": 0,
+      "i7": 0,
+      "i8": 0,
+      "i9": 0,
+      "i10": -2,
+      "i11": 0,
+      "j10": 3,
+      "j11": 1,
+      "j12": 0,
+      "j13": 0,
+      "k9": 1,
+      "k11": 1,
+      "k12": 0,
+      "k13": 0,
+      "l12": 0,
+      "m9": 0,
+      "m10": 0,
+      "m12": 0,
+      "n9": 0,
+      "n10": 0,
+      "n11": 0,
+      "o10": 0,
+      "o11": 0,
+    }
+  }
+];
+countingSampleState1 = {
+  "format": "Atlantis trancript",
+  "version": "1.0",
+  "segments": countingSampleSegments,
+  "players": countingSamplePlayers,
+  "turns": []
+};
+countingSampleState2 = {
+  "format": "Atlantis trancript",
+  "version": "1.0",
+  "segments": countingSampleSegments,
+  "players": countingSamplePlayers,
+  "turns": [
+    [],
+    [["e10", "g10"]],
+    [["j10", "j8"], ["j11", "k11"]]
+  ]
+};
+defineFigure("figure-counting-1-canvas", {
+  gamestate: countingSampleState1
+});
+defineFigure("figure-counting-2-canvas", {
+  gamestate: countingSampleState2,
+});
+</script>
+
+<h2 id="strategy">Strategy</h2>
+<p>The best way to master the game is by playing it. However, below are a few tips to get you started.</p>
+
+<ul>
+<li>At the start of the game, it’s necessary to explode some of the fields in your own starting area to generate the additional stones necessary to conquer other areas of the board.</li>
+
+<li>Later in the game, try to create explosions mainly in your opponent's areas. That way, you can increase the number of stones under your control without sacrificing your own territory.</li>
+
+<li>Territory is created by exploding fields in the middle of the board, creating growing fields that will eventually become dead fields, forming a wall that separates areas of the board.</li>
+
+<li>If the opponent has more stones than you do, start building a wall to prevent an invasion of your territory.</li>
+
+<li>It's not always necessary to build a wall. If you have more stones than an opponent, you can try to eliminate the other player instead, claiming the entire area as your own.</li>
+
+<li>However, it's rarely possible to eliminate your opponent completely. Try to use a mix of opponent elimination and wall building to maximize your score.</li>
+
+<li>When creating explosions, try to avoid excess capacity, because every stone lost this way is a stone you cannot use elsewhere. However, this isn't a strict rule: often it's acceptable to lose a stone or two in order to establish a strategically important growing field.</li>
+
+<li>Gather loose stones into stacks. Stacks are more mobile than individual stones.</li>
+
+<li>Don't put too many stacks on a single board segment. Because of the one-move-per-segment rule, such stacks have limited mobility. This can be especially dangerous for stacks next to growing fields: you may not be able to move them away in time, and you might end up exploding more than you intended!</li>
+
+<li>Try to position stacks so they can combine. For example, combining two stacks of three stones into a single stack of six in the middle of the board is a good way to start a wall there.</li>
+
+<li>Maximize your mobility by creating stacks on fields where the lines of movements are open (i.e., not blocked by growing or dead fields).</li>
+
+<li>Beware of unintended chain reactions! They can wipe out large swaths of your own territory. Beginners are especially prone to making this mistake.</li>
+
+<li>Be aware of the pros and cons of high-capacity growing fields.
+A growing field with 6 live neighbors takes 6 turns to produce 6 additional stones.
+That's a lot of stones, but a long time to wait.
+It's usually a good idea to explode a few neighboring fields to get a quicker return.</li>
+</ul>
+
+<h2 id="suggestions-for-playing-with-4-or-5-players">Suggestions for playing with 4 or 5 players</h2>
+<p>Because of the six-fold rotational symmetry of the board, Atlantis is best played with 2, 3 or 6 players.
+Games with 4 players are possible, but because game boards lack reflection symmetry, two of the players will be at a disadvantage.</p>
+
+<p>Games with an unusual number of players can be balanced out by adding dummy players that follow some predetermined rules. For example, instead of starting with seven stones spread across a single segment, a dummy player could start with a stack of six stones in the middle of the segment. During his turn, the dummy player will not move any stones, but his fields will explode and grow as usual. Obviously the dummy player is unlikely to win the game with this strategy, but the uncontrolled explosion will create a challenge for the human players nearby.</p>
+
+<!--
+<h2 id="how-to-play-online">How to play online</h2>
+<div class="todo">
+Link to <a href="index.html">games list</a>.
+Show setup
+How to share player links
+How to see who is the current player
+How to play a turn?
+Explain clicking to set up moves, and that moves are resolved once the "Move button is clicked"
+Similarly, explain that the "Explode" and "Grow" buttons must be clicked
+Explain that the "Grow" button must be clicked explicitly to end the turn
+</div>
+-->
+
+<p style="text-align:right">Written by Maks Verver<br>Last updated: October 4, 2020.</p>
+
+</body>
+</html>
