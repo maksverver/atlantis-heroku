@@ -326,8 +326,14 @@ function onConnection(client)
 
 exports.listen = function(server, store)
 {
-    database = new pg.Client(process.env.DATABASE_URL)
-    database.connect()
+    database = new pg.Client({ connectionString: process.env.DATABASE_URL })
+    database.connect(function(err) {
+        if (err != null) {
+            console.log('Database connection failed: ', err);
+        } else {
+            console.info('Database connected.');
+        }
+    });
 
     // Configure socket.io for use on Heroku:
     // https://devcenter.heroku.com/articles/using-socket-io-with-node-js-on-heroku
