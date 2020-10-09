@@ -1,8 +1,10 @@
-var atlantis    = require('./js/server/server.js')
-var crypto      = require('crypto')
-var express     = require('express')
-var http        = require('http')
-var url         = require('url')
+var atlantis     = require('./js/server/server.js')
+var bodyParser   = require('body-parser')
+var cookieParser = require('cookie-parser')
+var crypto       = require('crypto')
+var express      = require('express')
+var http         = require('http')
+var url          = require('url')
 
 var port         = process.env.PORT || 8027
 var app          = express()
@@ -11,8 +13,8 @@ app.use('/',          express.static(__dirname + '/html'))
 app.use('/js/common', express.static(__dirname + '/js/common'))
 app.use('/js/client', express.static(__dirname + '/js/client'))
 
-app.use('/rpc', express.bodyParser())
-app.use('/rpc', express.cookieParser(crypto.randomBytes(20).toString("hex")))
+app.use('/rpc', bodyParser.json())
+app.use('/rpc', cookieParser(crypto.randomBytes(20).toString("hex")))
 
 app.use('/rpc', function(request, response, next) {
 
