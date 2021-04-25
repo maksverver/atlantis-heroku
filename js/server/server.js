@@ -326,7 +326,12 @@ function onConnection(client)
 
 exports.listen = function(server, store)
 {
-    database = new pg.Client({ connectionString: process.env.DATABASE_URL })
+    database = new pg.Client({
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false
+        }
+    });
     database.connect(function(err) {
         if (err != null) {
             console.log('Database connection failed: ', err);
